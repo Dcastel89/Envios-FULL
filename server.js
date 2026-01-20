@@ -185,9 +185,11 @@ function calcularEstadisticasColecta(colecta) {
 
   Object.keys(colecta.items).forEach(function(codigoML) {
     var item = colecta.items[codigoML];
-    if (item.verificado) {
+    var cantVerif = item.cantidadVerificada || 0;
+    unidadesVerificadas += cantVerif;
+
+    if (cantVerif >= item.cantidad) {
       verificados++;
-      unidadesVerificadas += item.cantidad;
     } else {
       pendientes++;
       listaPendientes.push(codigoML);
@@ -598,7 +600,7 @@ async function parseColectaPDF(pdfBuffer) {
   // Crear items asociando código con cantidad (ya validado que son correctos)
   for (var i = 0; i < codigosOrdenados.length; i++) {
     var codigo = codigosOrdenados[i];
-    items[codigo] = { cantidad: cantidadesValidas[i], verificado: false };
+    items[codigo] = { cantidad: cantidadesValidas[i], cantidadVerificada: 0 };
   }
 
   // Calcular total de unidades
@@ -671,7 +673,7 @@ async function saveColectasToSheets() {
     await ensureColectasSheet();
 
     // Preparar datos para guardar (todas las colectas)
-    var rows = [['ColectaID', 'CodigoML', 'Cantidad', 'Verificado', 'FechaVerificacion', 'FechaColecta', 'FechaCarga', 'Nombre', 'Cuenta', 'FechaRetiro']];
+    var rows = [['ColectaID', 'CodigoML', 'Cantidad', 'CantidadVerificada', 'FechaVerificacion', 'FechaColecta', 'FechaCarga', 'Nombre', 'Cuenta', 'FechaRetiro']];
 
     Object.keys(colectas).forEach(function(colectaId) {
       var colecta = colectas[colectaId];
@@ -681,7 +683,7 @@ async function saveColectasToSheets() {
           colectaId,
           codigoML,
           item.cantidad,
-          item.verificado ? 'SI' : 'NO',
+          item.cantidadVerificada || 0,
           item.fechaVerificacion || '',
           colecta.fechaColecta,
           colecta.fecha,
@@ -736,7 +738,8 @@ async function loadColectasFromSheets() {
       var colectaId = row[0];
       var codigoML = row[1];
       var cantidad = parseInt(row[2], 10) || 1;
-      var verificado = row[3] === 'SI';
+      // Compatibilidad: si es "SI" significa que estaba todo verificado (formato anterior)
+      var cantidadVerificada = row[3] === 'SI' ? cantidad : (parseInt(row[3], 10) || 0);
       var fechaVerificacion = row[4] || '';
       var fechaColecta = row[5] || '';
       var fechaCarga = row[6] || '';
@@ -773,10 +776,10 @@ async function loadColectasFromSheets() {
       }
 
       // Agregar item
-      colectas[colectaId].items[codigoML] = { cantidad, verificado, fechaVerificacion };
+      colectas[colectaId].items[codigoML] = { cantidad, cantidadVerificada, fechaVerificacion };
       colectas[colectaId].totalItems++;
       colectas[colectaId].totalUnits += cantidad;
-      if (verificado) colectas[colectaId].verificados++;
+      if (cantidadVerificada >= cantidad) colectas[colectaId].verificados++;
     }
 
     // Si hubo colectas expiradas, guardar sin ellas
@@ -1142,10 +1145,12 @@ app.get('/api/colecta/:id', function(req, res) {
       if (!descripcion) descripcion = sku;
     }
 
+    var cantVerif = item.cantidadVerificada || 0;
     return {
       codigoML: codigoML,
       cantidad: item.cantidad,
-      verificado: item.verificado,
+      cantidadVerificada: cantVerif,
+      verificado: cantVerif >= item.cantidad,
       fechaVerificacion: item.fechaVerificacion || '',
       sku: sku,
       producto: productoInfo.producto || '',
@@ -1177,7 +1182,7 @@ app.get('/api/colecta/:id', function(req, res) {
   });
 });
 
-// Marcar código como verificado en una colecta específica
+// Marcar código como verificado en una colecta específica (incrementa 1 unidad)
 app.post('/api/colecta/:id/verificar/:codigoML', async function(req, res) {
   var colectaId = req.params.id;
   var codigoML = req.params.codigoML.trim().toUpperCase();
@@ -1187,25 +1192,35 @@ app.post('/api/colecta/:id/verificar/:codigoML', async function(req, res) {
     return res.status(404).json({ error: 'Colecta no encontrada' });
   }
 
-  if (!colecta.items[codigoML]) {
+  var item = colecta.items[codigoML];
+  if (!item) {
     return res.status(404).json({ error: 'Código no está en esta colecta' });
   }
 
-  if (colecta.items[codigoML].verificado) {
+  // Inicializar cantidadVerificada si no existe
+  if (item.cantidadVerificada === undefined) {
+    item.cantidadVerificada = 0;
+  }
+
+  // Verificar si ya está completamente verificado
+  if (item.cantidadVerificada >= item.cantidad) {
     var statsYa = calcularEstadisticasColecta(colecta);
     return res.json({
       success: true,
       yaVerificado: true,
-      mensaje: 'Este código ya fue verificado',
+      mensaje: 'Este código ya tiene todas las unidades verificadas (' + item.cantidad + '/' + item.cantidad + ')',
       verificados: statsYa.verificados,
       unidadesVerificadas: statsYa.unidadesVerificadas,
       pendientes: statsYa.pendientes,
-      progreso: statsYa.progreso
+      progreso: statsYa.progreso,
+      itemCantidad: item.cantidad,
+      itemVerificado: item.cantidadVerificada
     });
   }
 
-  colecta.items[codigoML].verificado = true;
-  colecta.items[codigoML].fechaVerificacion = new Date().toISOString();
+  // Incrementar en 1 unidad
+  item.cantidadVerificada++;
+  item.fechaVerificacion = new Date().toISOString();
 
   await saveColectasToSheets();
 
@@ -1216,21 +1231,32 @@ app.post('/api/colecta/:id/verificar/:codigoML', async function(req, res) {
     verificados: stats.verificados,
     unidadesVerificadas: stats.unidadesVerificadas,
     pendientes: stats.pendientes,
-    progreso: stats.progreso
+    progreso: stats.progreso,
+    itemCantidad: item.cantidad,
+    itemVerificado: item.cantidadVerificada,
+    mensaje: 'Verificado ' + item.cantidadVerificada + '/' + item.cantidad + ' unidades'
   });
 });
 
-// Marcar código en TODAS las colectas donde aparece
+// Marcar código en TODAS las colectas donde aparece (incrementa 1 unidad en cada una)
 app.post('/api/colectas/verificar/:codigoML', async function(req, res) {
   var codigoML = req.params.codigoML.trim().toUpperCase();
   var colectasAfectadas = [];
 
   Object.keys(colectas).forEach(function(colectaId) {
     var colecta = colectas[colectaId];
-    if (colecta.items[codigoML] && !colecta.items[codigoML].verificado) {
-      colecta.items[codigoML].verificado = true;
-      colecta.items[codigoML].fechaVerificacion = new Date().toISOString();
-      colectasAfectadas.push(colectaId);
+    var item = colecta.items[codigoML];
+    if (item) {
+      // Inicializar si no existe
+      if (item.cantidadVerificada === undefined) {
+        item.cantidadVerificada = 0;
+      }
+      // Solo incrementar si no está completamente verificado
+      if (item.cantidadVerificada < item.cantidad) {
+        item.cantidadVerificada++;
+        item.fechaVerificacion = new Date().toISOString();
+        colectasAfectadas.push(colectaId);
+      }
     }
   });
 
@@ -1242,12 +1268,12 @@ app.post('/api/colectas/verificar/:codigoML', async function(req, res) {
     success: true,
     colectasAfectadas: colectasAfectadas.length,
     mensaje: colectasAfectadas.length > 0
-      ? 'Marcado en ' + colectasAfectadas.length + ' colecta(s)'
-      : 'Código no encontrado en ninguna colecta pendiente'
+      ? 'Verificada 1 unidad en ' + colectasAfectadas.length + ' colecta(s)'
+      : 'Código no encontrado o ya completamente verificado'
   });
 });
 
-// Desmarcar código en una colecta
+// Desmarcar código en una colecta (resetea todas las unidades verificadas a 0)
 app.post('/api/colecta/:id/desverificar/:codigoML', async function(req, res) {
   var colectaId = req.params.id;
   var codigoML = req.params.codigoML.trim().toUpperCase();
@@ -1257,15 +1283,17 @@ app.post('/api/colecta/:id/desverificar/:codigoML', async function(req, res) {
     return res.status(404).json({ error: 'Colecta no encontrada' });
   }
 
-  if (!colecta.items[codigoML]) {
+  var item = colecta.items[codigoML];
+  if (!item) {
     return res.status(404).json({ error: 'Código no está en esta colecta' });
   }
 
-  if (!colecta.items[codigoML].verificado) {
+  var cantVerif = item.cantidadVerificada || 0;
+  if (cantVerif === 0) {
     var statsYa = calcularEstadisticasColecta(colecta);
     return res.json({
       success: true,
-      mensaje: 'Este código no estaba verificado',
+      mensaje: 'Este código no tiene unidades verificadas',
       verificados: statsYa.verificados,
       unidadesVerificadas: statsYa.unidadesVerificadas,
       pendientes: statsYa.pendientes,
@@ -1273,8 +1301,9 @@ app.post('/api/colecta/:id/desverificar/:codigoML', async function(req, res) {
     });
   }
 
-  colecta.items[codigoML].verificado = false;
-  colecta.items[codigoML].fechaVerificacion = '';
+  // Resetear a 0
+  item.cantidadVerificada = 0;
+  item.fechaVerificacion = '';
 
   await saveColectasToSheets();
 
@@ -1285,7 +1314,8 @@ app.post('/api/colecta/:id/desverificar/:codigoML', async function(req, res) {
     verificados: stats.verificados,
     unidadesVerificadas: stats.unidadesVerificadas,
     pendientes: stats.pendientes,
-    progreso: stats.progreso
+    progreso: stats.progreso,
+    mensaje: 'Desverificadas ' + cantVerif + ' unidades'
   });
 });
 
