@@ -150,6 +150,18 @@
     .scan-toast-code { font-size: 14px; font-weight: 400; margin-top: 8px; opacity: 0.9; font-family: monospace; }
     .scan-toast-count { font-size: 16px; font-weight: 500; margin-top: 4px; }
 
+    /* Input dedicado para escaneo web (lector de código de barras) */
+    .web-scanner-section { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-radius: 16px; padding: 24px; margin-bottom: 16px; text-align: center; }
+    .web-scanner-section.hidden { display: none; }
+    .web-scanner-title { color: #94a3b8; font-size: 14px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .web-scanner-input { width: 100%; padding: 20px; font-size: 24px; font-family: monospace; text-align: center; border: 3px solid #3b82f6; border-radius: 12px; background: #0f172a; color: white; outline: none; transition: all 0.2s; }
+    .web-scanner-input:focus { border-color: #22c55e; box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+    .web-scanner-input::placeholder { color: #475569; }
+    .web-scanner-hint { color: #64748b; font-size: 13px; margin-top: 12px; }
+    .web-scanner-status { margin-top: 16px; padding: 12px; border-radius: 8px; font-weight: 600; }
+    .web-scanner-status.ready { background: #166534; color: #86efac; }
+    .web-scanner-status.no-colecta { background: #7f1d1d; color: #fca5a5; }
+
     .hidden { display: none !important; }
 
     /* Login */
@@ -633,6 +645,14 @@
 
     <div class="status-message" id="statusMessage"></div>
 
+    <!-- Input dedicado para escaneo web (lector de código de barras) -->
+    <div class="web-scanner-section hidden" id="webScannerSection">
+      <div class="web-scanner-title">Escanear con lector</div>
+      <input type="text" id="webScannerInput" class="web-scanner-input" placeholder="Esperando escaneo..." autocomplete="off">
+      <div class="web-scanner-hint">El lector escribirá aquí automáticamente</div>
+      <div class="web-scanner-status ready" id="webScannerStatus">✓ Listo para escanear</div>
+    </div>
+
     <!-- Lista desplegable de items escaneados -->
     <div class="scanned-dropdown hidden" id="scannedDropdown">
       <div class="scanned-dropdown-header" id="scannedDropdownHeader">
@@ -866,6 +886,11 @@
       var lastVerifiedCode = null; // Para confirmación con segundo escaneo
       var toastTimeout = null;
 
+      // Web scanner elements (input dedicado para lector)
+      var webScannerSection = document.getElementById('webScannerSection');
+      var webScannerInput = document.getElementById('webScannerInput');
+      var webScannerStatus = document.getElementById('webScannerStatus');
+
       // ============================================
       // MAIN TABS (solo web, no PWA)
       // ============================================
@@ -971,21 +996,27 @@
         colectasCalendario.classList.add('hidden');
         colectasVerificar.classList.add('hidden');
 
-        // Mostrar/ocultar botón escanear y sección de búsqueda según pestaña
+        // Mostrar/ocultar secciones de escaneo según contexto
         var scanSection = document.querySelector('.scan-section');
         if (currentView === 'verificar' && activeMainSection === 'seguimiento') {
-          scanSection.classList.remove('hidden');
-          // En web: ocultar cámara, solo usar lector físico
           if (isPWA) {
+            // PWA: mostrar buscador con cámara
+            scanSection.classList.remove('hidden');
             cameraBtn.classList.remove('hidden');
+            webScannerSection.classList.add('hidden');
           } else {
+            // Web: ocultar buscador, mostrar input dedicado para lector
+            scanSection.classList.add('hidden');
             cameraBtn.classList.add('hidden');
-            // Auto-foco en input para lector de código de barras
-            setTimeout(function() { codigoInput.focus(); }, 100);
+            webScannerSection.classList.remove('hidden');
+            actualizarEstadoWebScanner();
+            // Auto-foco en el input del lector
+            setTimeout(function() { webScannerInput.focus(); }, 100);
           }
         } else {
           cameraBtn.classList.add('hidden');
           scanSection.classList.add('hidden');
+          webScannerSection.classList.add('hidden');
           // Ocultar también resultados si cambiamos de pestaña
           itemsSection.classList.add('hidden');
           resetBtn.classList.add('hidden');
@@ -1009,6 +1040,22 @@
         } else if (currentView === 'verificar') {
           renderVerificarColectas();
           colectasVerificar.classList.remove('hidden');
+        }
+      }
+
+      function actualizarEstadoWebScanner() {
+        if (colectaActivaId) {
+          var col = colectasData.find(function(c) { return c.id === colectaActivaId; });
+          var nombre = col ? (col.cuenta || col.nombre) : '';
+          webScannerStatus.className = 'web-scanner-status ready';
+          webScannerStatus.textContent = '✓ Listo - ' + nombre;
+          webScannerInput.disabled = false;
+          webScannerInput.placeholder = 'Esperando escaneo...';
+        } else {
+          webScannerStatus.className = 'web-scanner-status no-colecta';
+          webScannerStatus.textContent = '⚠ Seleccioná una colecta primero';
+          webScannerInput.disabled = true;
+          webScannerInput.placeholder = 'Seleccioná una colecta...';
         }
       }
 
@@ -1076,6 +1123,20 @@
         codigoInput.value = '';
         // Cargar items de la colecta activa
         cargarItemsColectaActiva();
+        // Actualizar estado del scanner web
+        if (!isPWA) {
+          actualizarEstadoWebScanner();
+          webScannerInput.value = '';
+          setTimeout(function() { webScannerInput.focus(); }, 100);
+        }
+      });
+
+      // Event listener para el input del lector web
+      webScannerInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          verificarCodigoWeb(webScannerInput.value);
+        }
       });
 
       // ============================================
@@ -1167,12 +1228,17 @@
         }, 1500);
       }
 
+      var webScannerBusy = false; // Prevenir escaneos mientras se procesa
+
       function verificarCodigoWeb(codigo) {
         if (!codigo || codigo.trim() === '') return;
+
+        // Limpiar input INMEDIATAMENTE para el próximo escaneo
+        webScannerInput.value = '';
+
         if (!colectaActivaId) {
           showToast('Elegí una colecta', 'error');
-          codigoInput.value = '';
-          codigoInput.focus();
+          webScannerInput.focus();
           return;
         }
 
@@ -1182,10 +1248,13 @@
         if (codigo === lastVerifiedCode) {
           showToast('✓ CONFIRMADO', 'confirm', codigo);
           lastVerifiedCode = null; // Reset para próximo ciclo
-          codigoInput.value = '';
-          codigoInput.focus();
+          webScannerInput.focus();
           return;
         }
+
+        // Prevenir doble procesamiento
+        if (webScannerBusy) return;
+        webScannerBusy = true;
 
         // Verificar en la colecta
         fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
@@ -1230,8 +1299,8 @@
           showToast('ERROR', 'error', codigo);
         })
         .finally(function() {
-          codigoInput.value = '';
-          codigoInput.focus();
+          webScannerBusy = false;
+          webScannerInput.focus();
         });
       }
 
@@ -1798,13 +1867,7 @@
 
       codigoInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-          // En web: verificación automática con lector
-          // En PWA: búsqueda normal para ver detalles
-          if (isPWA) {
-            searchCodigo(codigoInput.value);
-          } else {
-            verificarCodigoWeb(codigoInput.value);
-          }
+          searchCodigo(codigoInput.value);
         }
       });
 
