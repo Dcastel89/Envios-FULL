@@ -140,9 +140,13 @@
     .scanned-item-count.partial { color: #f59e0b; }
     .scanned-item-count.pending { color: #9ca3af; }
     .scanned-item-label { font-size: 10px; color: #6b7280; text-transform: uppercase; }
-    .scanned-item-delete { background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: 12px; }
-    .scanned-item-delete:hover { background: #b91c1c; }
-    .scanned-item-delete:disabled { background: #9ca3af; cursor: not-allowed; }
+    .scanned-item-actions { display: flex; align-items: center; gap: 8px; }
+    .scanned-item-btn { width: 32px; height: 32px; border-radius: 50%; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .scanned-item-btn.plus { background: #22c55e; color: white; }
+    .scanned-item-btn.plus:hover { background: #16a34a; }
+    .scanned-item-btn.minus { background: #ef4444; color: white; }
+    .scanned-item-btn.minus:hover { background: #dc2626; }
+    .scanned-item-btn:disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; }
 
     /* Toast para feedback rápido (web con lector) */
     .scan-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: #22c55e; color: white; padding: 24px 48px; border-radius: 16px; font-size: 24px; font-weight: 700; text-align: center; z-index: 2000; opacity: 0; transition: all 0.2s ease; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
@@ -1264,21 +1268,19 @@
           if (esCompleto) completados++;
 
           var statusClass = esCompleto ? 'complete' : (esParcial ? 'partial' : 'pending');
-          var statusText = esCompleto ? 'Completo' : (esParcial ? 'Parcial' : 'Pendiente');
           var tieneVerificacion = item.cantidadVerificada > 0;
+          var puedeAgregar = item.cantidadVerificada < item.cantidad;
 
           html += '<div class="scanned-item">';
           html += '<div class="scanned-item-info">';
           html += '<div class="scanned-item-code">' + codigo + '</div>';
           html += '<div class="scanned-item-desc">' + item.descripcion + '</div>';
           html += '</div>';
-          html += '<div class="scanned-item-status">';
-          html += '<div class="scanned-item-count ' + statusClass + '">' + item.cantidadVerificada + '/' + item.cantidad + '</div>';
-          html += '<div class="scanned-item-label">' + statusText + '</div>';
+          html += '<div class="scanned-item-actions">';
+          html += '<button class="scanned-item-btn minus" onclick="window.decrementarItem(\'' + codigo + '\')"' + (!tieneVerificacion ? ' disabled' : '') + '>-</button>';
+          html += '<span class="scanned-item-count ' + statusClass + '">' + item.cantidadVerificada + '/' + item.cantidad + '</span>';
+          html += '<button class="scanned-item-btn plus" onclick="window.incrementarItem(\'' + codigo + '\')"' + (!puedeAgregar ? ' disabled' : '') + '>+</button>';
           html += '</div>';
-          if (tieneVerificacion) {
-            html += '<button class="scanned-item-delete" onclick="borrarItemVerificacion(\'' + codigo + '\')">Borrar</button>';
-          }
           html += '</div>';
         });
 
@@ -1489,25 +1491,46 @@
         });
       }
 
-      function borrarItemVerificacion(codigo) {
+      // Funciones globales para +/- en lista de items
+      window.decrementarItem = function(codigo) {
         if (!codigo || !colectaActivaId) return;
 
-        fetch('/api/colecta/' + colectaActivaId + '/desverificar/' + encodeURIComponent(codigo), {
+        fetch('/api/colecta/' + colectaActivaId + '/decrementar/' + encodeURIComponent(codigo), {
           method: 'POST',
           credentials: 'include'
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
           if (data.success) {
-            showToast('BORRADO', 'error', codigo);
+            showToast('-1', 'error', codigo);
             loadColectas();
             cargarItemsColectaActiva();
           }
         })
         .catch(function(err) {
-          showToast('ERROR', 'error', 'No se pudo borrar');
+          showToast('ERROR', 'error', 'No se pudo decrementar');
         });
-      }
+      };
+
+      window.incrementarItem = function(codigo) {
+        if (!codigo || !colectaActivaId) return;
+
+        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
+          method: 'POST',
+          credentials: 'include'
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast('+1', '', codigo);
+            loadColectas();
+            cargarItemsColectaActiva();
+          }
+        })
+        .catch(function(err) {
+          showToast('ERROR', 'error', 'No se pudo incrementar');
+        });
+      };
 
       function renderListaColectas() {
         if (colectasData.length === 0) {
