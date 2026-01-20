@@ -1,5 +1,5 @@
 // Service Worker para Verificador FULL
-const CACHE_NAME = 'verificador-full-v1';
+const CACHE_NAME = 'verificador-full-v2';
 
 // Archivos a cachear para offline
 const urlsToCache = [
