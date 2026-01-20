@@ -13,8 +13,22 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; min-height: 100vh; padding-bottom: 80px; }
     .header { background: #059669; color: white; padding: 16px; text-align: center; }
-    .header h1 { font-size: 18px; font-weight: 600; }
-    .stats-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 8px; }
+    .header h1 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+    .header.with-tabs h1 { margin-bottom: 16px; }
+
+    /* Main tabs in header - solo web */
+    .main-tabs { display: none; gap: 8px; justify-content: center; }
+    .main-tabs.show { display: flex; }
+    .main-tab { flex: 1; max-width: 180px; padding: 14px 16px; background: rgba(255,255,255,0.15); color: white; border: 2px solid transparent; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.2s; }
+    .main-tab:hover { background: rgba(255,255,255,0.25); }
+    .main-tab.active { background: white; color: #059669; border-color: white; }
+    .main-tab-icon { font-size: 24px; }
+    .main-tab-text { font-size: 12px; }
+
+    /* Main sections */
+    .main-section { display: none; }
+    .main-section.active { display: block; }
+
     .container { padding: 16px; max-width: 500px; margin: 0 auto; }
 
     /* Scan section */
@@ -262,6 +276,57 @@
     .transfer-validation { padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 12px; }
     .transfer-validation.ok { background: #dcfce7; color: #166534; }
     .transfer-validation.error { background: #fee2e2; color: #991b1b; }
+
+    /* Transfer en sección Creación - más prominente */
+    #sectionCreacion .transfer-section { border: none; margin-top: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    #sectionCreacion .transfer-section h2::before { content: ''; }
+
+    /* Creación - Tabs internos */
+    .creacion-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .creacion-tab { flex: 1; padding: 12px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .creacion-tab:hover { background: #e5e7eb; }
+    .creacion-tab.active { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+    .creacion-tab-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+    .creacion-content { display: none; }
+    .creacion-content.active { display: block; }
+
+    /* Planificador */
+    .planner-section { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .planner-section h2 { font-size: 16px; font-weight: 600; color: #2563eb; margin-bottom: 8px; }
+    .planner-section p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+    .planner-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .planner-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .planner-file-box { border: 1px dashed #d1d5db; border-radius: 8px; padding: 10px; background: #f9fafb; }
+    .planner-file-box label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .planner-file-box input[type="file"] { width: 100%; font-size: 11px; }
+    .planner-file-box .file-status { font-size: 11px; color: #059669; margin-top: 4px; }
+    .planner-file-box .file-status.error { color: #dc2626; }
+    .planner-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+    .planner-btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .planner-btn.primary { background: #2563eb; color: white; }
+    .planner-btn.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    .planner-btn.success { background: #059669; color: white; }
+    .planner-warnings { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .planner-warnings h4 { font-size: 13px; font-weight: 600; color: #92400e; margin-bottom: 8px; }
+    .planner-warnings-list { max-height: 100px; overflow-y: auto; font-size: 12px; color: #78350f; }
+    .planner-results { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+    .planner-results-header { background: #f3f4f6; padding: 12px; font-size: 13px; font-weight: 600; color: #374151; display: flex; justify-content: space-between; }
+    .planner-validation { background: #eff6ff; padding: 10px 12px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #1e40af; }
+    .planner-table-wrap { max-height: 300px; overflow-y: auto; }
+    .planner-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+    .planner-table th { background: #f9fafb; padding: 8px 6px; text-align: left; font-weight: 600; color: #374151; position: sticky; top: 0; }
+    .planner-table td { padding: 6px; border-bottom: 1px solid #f3f4f6; }
+    .planner-table tr:hover { background: #f9fafb; }
+    .planner-table .text-right { text-align: right; }
+    .planner-table .font-bold { font-weight: 700; }
+    .planner-table .font-mono { font-family: monospace; }
+    .planner-cat { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+    .planner-cat.ok { background: #dcfce7; color: #166534; }
+    .planner-cat.insuficiente { background: #fee2e2; color: #991b1b; }
+    .planner-cat.noEncontrado { background: #f3f4f6; color: #374151; }
+    .planner-cat.sinRecomendacion { background: #fef3c7; color: #92400e; }
+    .planner-cat.sinSku { background: #f3e8ff; color: #6b21a8; }
+    .planner-cat.excluir { background: #f3f4f6; color: #6b7280; }
   </style>
 </head>
 <body>
@@ -284,12 +349,163 @@
   <!-- Logout Button -->
   <button type="button" class="logout-btn hidden" id="logoutBtn">Salir</button>
 
-  <div class="header">
+  <div class="header" id="mainHeader">
     <h1>Verificador FULL</h1>
-    <div class="stats-badge" id="statsBadge">Cargando...</div>
+    <div class="main-tabs" id="mainTabs">
+      <button type="button" class="main-tab" data-section="creacion">
+        <span class="main-tab-icon">📦</span>
+        <span class="main-tab-text">Creación</span>
+      </button>
+      <button type="button" class="main-tab active" data-section="seguimiento">
+        <span class="main-tab-icon">📋</span>
+        <span class="main-tab-text">Seguimiento</span>
+      </button>
+    </div>
   </div>
 
   <div class="container">
+    <!-- SECCIÓN: Creación de Colectas (solo web) -->
+    <div class="main-section" id="sectionCreacion">
+      <!-- Tabs internos -->
+      <div class="creacion-tabs">
+        <button type="button" class="creacion-tab active" data-tab="planificador">
+          <span class="creacion-tab-icon">📊</span>
+          1. Planificador
+        </button>
+        <button type="button" class="creacion-tab" data-tab="transferencia">
+          <span class="creacion-tab-icon">🔄</span>
+          2. Transferencia
+        </button>
+      </div>
+
+      <!-- Tab: Planificador -->
+      <div class="creacion-content active" id="tabPlanificador">
+        <div class="planner-section">
+          <h2>📊 Planificador de Envíos FULL</h2>
+          <p>Calculá cuántas unidades enviar según las sugerencias de MeLi, tu stock disponible y ventas mayoristas.</p>
+
+          <div class="planner-grid">
+            <div class="planner-file-box">
+              <label>MeLi Cuenta 1</label>
+              <input type="file" id="plannerMeli1" accept=".xlsx,.xls">
+              <div class="file-status" id="plannerMeli1Status"></div>
+            </div>
+            <div class="planner-file-box">
+              <label>MeLi Cuenta 2</label>
+              <input type="file" id="plannerMeli2" accept=".xlsx,.xls">
+              <div class="file-status" id="plannerMeli2Status"></div>
+            </div>
+            <div class="planner-file-box">
+              <label>MeLi Cuenta 3</label>
+              <input type="file" id="plannerMeli3" accept=".xlsx,.xls">
+              <div class="file-status" id="plannerMeli3Status"></div>
+            </div>
+          </div>
+
+          <div class="planner-grid-2">
+            <div class="planner-file-box">
+              <label>Stock ERP *</label>
+              <input type="file" id="plannerStock" accept=".xlsx,.xls">
+              <div class="file-status" id="plannerStockStatus"></div>
+            </div>
+            <div class="planner-file-box">
+              <label>Mayorista (opcional)</label>
+              <input type="file" id="plannerMayorista" accept=".xlsx,.xls">
+              <div class="file-status" id="plannerMayoristaStatus"></div>
+            </div>
+          </div>
+
+          <div class="planner-buttons">
+            <button type="button" class="planner-btn primary" id="plannerProcessBtn" disabled>Procesar</button>
+            <button type="button" class="planner-btn success hidden" id="plannerExportBtn">Exportar Excel</button>
+          </div>
+
+          <div class="planner-warnings hidden" id="plannerWarnings">
+            <h4>⚠️ SKUs no encontrados</h4>
+            <div class="planner-warnings-list" id="plannerWarningsList"></div>
+          </div>
+
+          <div class="planner-results hidden" id="plannerResults">
+            <div class="planner-results-header">
+              <span id="plannerResultsCount">0 productos</span>
+              <span>Sugeridas: <strong id="plannerSugeridas">0</strong> | A enviar: <strong id="plannerAEnviar">0</strong></span>
+            </div>
+            <div class="planner-validation" id="plannerValidation"></div>
+            <div class="planner-table-wrap">
+              <table class="planner-table">
+                <thead>
+                  <tr>
+                    <th>Estado</th>
+                    <th>Cuenta</th>
+                    <th>SKU</th>
+                    <th>Rec.</th>
+                    <th class="text-right">Sug.</th>
+                    <th class="text-right">Disp.</th>
+                    <th class="text-right">Enviar</th>
+                    <th class="text-right">May.</th>
+                    <th class="text-right">Rest.</th>
+                  </tr>
+                </thead>
+                <tbody id="plannerTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Transferencia -->
+      <div class="creacion-content" id="tabTransferencia">
+        <div class="transfer-section" id="transferSectionCreacion" style="margin-top: 0; display: block;">
+          <h2>🔄 Transferencia de Stock</h2>
+          <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">Transferí stock del Depósito 1 al Depósito 2 basándote en un envío FULL.</p>
+          <div class="transfer-steps">
+            <div class="transfer-step">
+              <div class="transfer-step-header">
+                <span class="transfer-step-num">1</span>
+                <span class="transfer-step-title">PDF del Envío FULL</span>
+              </div>
+              <input type="file" id="transferPdfInput2" accept=".pdf">
+              <div class="transfer-step-status" id="transferPdfStatus2"></div>
+              <div class="transfer-validation hidden" id="transferPdfValidation2"></div>
+            </div>
+
+            <div class="transfer-step">
+              <div class="transfer-step-header">
+                <span class="transfer-step-num">2</span>
+                <span class="transfer-step-title">Excel de Stock (ERP)</span>
+              </div>
+              <input type="file" id="transferStockInput2" accept=".xlsx,.xls,.csv">
+              <div class="transfer-step-status" id="transferStockStatus2"></div>
+            </div>
+
+            <button type="button" class="transfer-btn" id="transferProcessBtn2" disabled>
+              Procesar Transferencia (Dep1 → Dep2)
+            </button>
+
+            <div class="transfer-results hidden" id="transferResults2">
+              <div class="transfer-result-box success hidden" id="transferSuccess2">
+                <h4>✓ Transferencias exitosas</h4>
+                <ul id="transferSuccessList2"></ul>
+              </div>
+              <div class="transfer-result-box error hidden" id="transferErrors2">
+                <h4>✗ Stock insuficiente</h4>
+                <ul id="transferErrorsList2"></ul>
+              </div>
+              <div class="transfer-result-box warning hidden" id="transferNotFound2">
+                <h4>⚠ SKUs no encontrados</h4>
+                <ul id="transferNotFoundList2"></ul>
+              </div>
+              <button type="button" class="transfer-download-btn hidden" id="transferDownloadBtn2">
+                ⬇ Descargar Stock Actualizado (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN: Seguimiento (default) -->
+    <div class="main-section active" id="sectionSeguimiento">
     <!-- Panel de Colectas -->
     <div class="colectas-panel" id="colectasPanel">
       <div class="colectas-header">
@@ -370,53 +586,7 @@
     </div>
 
     <button type="button" class="reset-btn hidden" id="resetBtn">Nuevo codigo</button>
-
-    <!-- Sección Transferencia Stock - Solo visible en navegador, no en PWA -->
-    <div class="transfer-section hidden" id="transferSection">
-      <h2>Transferencia de Stock <span class="transfer-web-only">Solo Web</span></h2>
-      <div class="transfer-steps">
-        <div class="transfer-step">
-          <div class="transfer-step-header">
-            <span class="transfer-step-num">1</span>
-            <span class="transfer-step-title">PDF del Envío FULL</span>
-          </div>
-          <input type="file" id="transferPdfInput" accept=".pdf">
-          <div class="transfer-step-status" id="transferPdfStatus"></div>
-          <div class="transfer-validation hidden" id="transferPdfValidation"></div>
-        </div>
-
-        <div class="transfer-step">
-          <div class="transfer-step-header">
-            <span class="transfer-step-num">2</span>
-            <span class="transfer-step-title">Excel de Stock (ERP)</span>
-          </div>
-          <input type="file" id="transferStockInput" accept=".xlsx,.xls,.csv">
-          <div class="transfer-step-status" id="transferStockStatus"></div>
-        </div>
-
-        <button type="button" class="transfer-btn" id="transferProcessBtn" disabled>
-          Procesar Transferencia (Dep1 → Dep2)
-        </button>
-
-        <div class="transfer-results hidden" id="transferResults">
-          <div class="transfer-result-box success hidden" id="transferSuccess">
-            <h4>✓ Transferencias exitosas</h4>
-            <ul id="transferSuccessList"></ul>
-          </div>
-          <div class="transfer-result-box error hidden" id="transferErrors">
-            <h4>✗ Stock insuficiente</h4>
-            <ul id="transferErrorsList"></ul>
-          </div>
-          <div class="transfer-result-box warning hidden" id="transferNotFound">
-            <h4>⚠ SKUs no encontrados</h4>
-            <ul id="transferNotFoundList"></ul>
-          </div>
-          <button type="button" class="transfer-download-btn hidden" id="transferDownloadBtn">
-            ⬇ Descargar Stock Actualizado (.xlsx)
-          </button>
-        </div>
-      </div>
-    </div>
+    </div><!-- fin sectionSeguimiento -->
   </div>
 
   <div class="complete-banner" id="completeBanner">✓ Verificacion completa</div>
@@ -573,18 +743,55 @@
       var visionResult = document.getElementById('visionResult');
       var photoInput = document.getElementById('photoInput');
 
-      // Cargar stats
-      function loadStats() {
-        fetch('/api/stats', { credentials: 'include' })
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            statsBadge.textContent = data.totalCodigos + ' codigos';
-          })
-          .catch(function() {
-            statsBadge.textContent = 'Error';
-          });
+      // ============================================
+      // MAIN TABS (solo web, no PWA)
+      // ============================================
+      var mainTabs = document.getElementById('mainTabs');
+      var mainHeader = document.getElementById('mainHeader');
+      var sectionCreacion = document.getElementById('sectionCreacion');
+      var sectionSeguimiento = document.getElementById('sectionSeguimiento');
+
+      // Detectar PWA
+      var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      var activeMainSection = 'seguimiento'; // 'creacion' o 'seguimiento'
+
+      if (!isPWA) {
+        // Mostrar tabs solo en web
+        mainTabs.classList.add('show');
+        mainHeader.classList.add('with-tabs');
+
+        // Event listeners para main tabs
+        document.querySelectorAll('.main-tab').forEach(function(tab) {
+          tab.onclick = function() {
+            document.querySelectorAll('.main-tab').forEach(function(t) { t.classList.remove('active'); });
+            this.classList.add('active');
+            var section = this.getAttribute('data-section');
+            activeMainSection = section;
+
+            // Ocultar todas las secciones
+            sectionCreacion.classList.remove('active');
+            sectionSeguimiento.classList.remove('active');
+
+            // Mostrar la sección seleccionada
+            if (section === 'creacion') {
+              sectionCreacion.classList.add('active');
+              // Ocultar botón cámara y banner en sección creación
+              cameraBtn.classList.add('hidden');
+              completeBanner.classList.remove('show');
+            } else {
+              sectionSeguimiento.classList.add('active');
+              // Mostrar botón cámara si estamos en pestaña verificar
+              if (typeof currentView !== 'undefined' && currentView === 'verificar') {
+                cameraBtn.classList.remove('hidden');
+              }
+            }
+          };
+        });
+      } else {
+        // En PWA: ocultar sección creación, mostrar solo seguimiento
+        sectionCreacion.style.display = 'none';
+        sectionSeguimiento.classList.add('active');
       }
-      loadStats();
 
       // ============================================
       // COLECTAS (múltiples)
@@ -630,7 +837,7 @@
 
         // Mostrar/ocultar botón escanear y sección de búsqueda según pestaña
         var scanSection = document.querySelector('.scan-section');
-        if (currentView === 'verificar') {
+        if (currentView === 'verificar' && activeMainSection === 'seguimiento') {
           cameraBtn.classList.remove('hidden');
           scanSection.classList.remove('hidden');
         } else {
@@ -1417,21 +1624,14 @@
     }
   </script>
 
-  <!-- Transferencia de Stock - Solo Web -->
+  <!-- Transferencia de Stock - Solo Web (en sección Creación) -->
   <script>
   (function transferInit() {
     // Detectar si es PWA instalada
     var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    var transferSection = document.getElementById('transferSection');
-    if (isPWA || !transferSection) {
-      // Ocultar en PWA
-      if (transferSection) transferSection.classList.add('hidden');
-      return;
-    }
-
-    // Mostrar sección en navegador
-    transferSection.classList.remove('hidden');
+    // En PWA no inicializar
+    if (isPWA) return;
 
     // Estado
     var shipmentData = [];
@@ -1440,21 +1640,23 @@
     var transferResults = null;
     var pdfTotals = null;
 
-    // Elementos
-    var transferPdfInput = document.getElementById('transferPdfInput');
-    var transferStockInput = document.getElementById('transferStockInput');
-    var transferPdfStatus = document.getElementById('transferPdfStatus');
-    var transferStockStatus = document.getElementById('transferStockStatus');
-    var transferPdfValidation = document.getElementById('transferPdfValidation');
-    var transferProcessBtn = document.getElementById('transferProcessBtn');
-    var transferResultsDiv = document.getElementById('transferResults');
-    var transferSuccess = document.getElementById('transferSuccess');
-    var transferErrors = document.getElementById('transferErrors');
-    var transferNotFound = document.getElementById('transferNotFound');
-    var transferSuccessList = document.getElementById('transferSuccessList');
-    var transferErrorsList = document.getElementById('transferErrorsList');
-    var transferNotFoundList = document.getElementById('transferNotFoundList');
-    var transferDownloadBtn = document.getElementById('transferDownloadBtn');
+    // Elementos (con sufijo 2 para los nuevos IDs)
+    var transferPdfInput = document.getElementById('transferPdfInput2');
+    var transferStockInput = document.getElementById('transferStockInput2');
+    var transferPdfStatus = document.getElementById('transferPdfStatus2');
+    var transferStockStatus = document.getElementById('transferStockStatus2');
+    var transferPdfValidation = document.getElementById('transferPdfValidation2');
+    var transferProcessBtn = document.getElementById('transferProcessBtn2');
+    var transferResultsDiv = document.getElementById('transferResults2');
+    var transferSuccess = document.getElementById('transferSuccess2');
+    var transferErrors = document.getElementById('transferErrors2');
+    var transferNotFound = document.getElementById('transferNotFound2');
+    var transferSuccessList = document.getElementById('transferSuccessList2');
+    var transferErrorsList = document.getElementById('transferErrorsList2');
+    var transferNotFoundList = document.getElementById('transferNotFoundList2');
+    var transferDownloadBtn = document.getElementById('transferDownloadBtn2');
+
+    if (!transferPdfInput) return;
 
     // Parsear SKU: manejar "/" separadores y (n) multiplicadores
     function parseSkuString(skuStr, baseQty) {
@@ -1765,6 +1967,535 @@
       XLSX.utils.book_append_sheet(wb, ws, 'Stock Modificado');
 
       XLSX.writeFile(wb, 'stock_actualizado.xlsx');
+    });
+  })();
+  </script>
+
+  <!-- Tabs internos de Creación -->
+  <script>
+  (function creacionTabsInit() {
+    var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isPWA) return;
+
+    document.querySelectorAll('.creacion-tab').forEach(function(tab) {
+      tab.onclick = function() {
+        document.querySelectorAll('.creacion-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.creacion-content').forEach(function(c) { c.classList.remove('active'); });
+        this.classList.add('active');
+        var tabId = this.getAttribute('data-tab');
+        var content = document.getElementById('tab' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+        if (content) content.classList.add('active');
+      };
+    });
+  })();
+  </script>
+
+  <!-- Planificador de Envíos FULL -->
+  <script>
+  (function plannerInit() {
+    var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isPWA) return;
+
+    var MIN_STOCK_RESERVE = 10;
+    var meliFiles = [{ name: null, data: null }, { name: null, data: null }, { name: null, data: null }];
+    var stockData = null;
+    var mayoristaData = null;
+    var plannerResultsData = null;
+    var plannerErrors = [];
+
+    // Elementos
+    var meliInputs = [
+      document.getElementById('plannerMeli1'),
+      document.getElementById('plannerMeli2'),
+      document.getElementById('plannerMeli3')
+    ];
+    var meliStatuses = [
+      document.getElementById('plannerMeli1Status'),
+      document.getElementById('plannerMeli2Status'),
+      document.getElementById('plannerMeli3Status')
+    ];
+    var stockInput = document.getElementById('plannerStock');
+    var stockStatus = document.getElementById('plannerStockStatus');
+    var mayoristaInput = document.getElementById('plannerMayorista');
+    var mayoristaStatus = document.getElementById('plannerMayoristaStatus');
+    var processBtn = document.getElementById('plannerProcessBtn');
+    var exportBtn = document.getElementById('plannerExportBtn');
+    var warningsDiv = document.getElementById('plannerWarnings');
+    var warningsList = document.getElementById('plannerWarningsList');
+    var resultsDiv = document.getElementById('plannerResults');
+    var resultsCount = document.getElementById('plannerResultsCount');
+    var sugeridas = document.getElementById('plannerSugeridas');
+    var aEnviar = document.getElementById('plannerAEnviar');
+    var validationDiv = document.getElementById('plannerValidation');
+    var tableBody = document.getElementById('plannerTableBody');
+
+    if (!processBtn) return;
+
+    function parseNumber(value) {
+      if (value === null || value === undefined || value === '' || value === '-') return 0;
+      var str = value.toString().trim();
+      if (str === '-' || str === '') return 0;
+      var cleaned = str.replace(/[^\d]/g, '');
+      var num = parseInt(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function categorizeItem(item) {
+      var recLower = (item.recommendation || '').toLowerCase().trim();
+      if (recLower.includes('desvinculaste') || recLower.includes('no tenés recomendación')) return 'desvinculado';
+      if (recLower.includes('no enviar') || recLower.includes('recomendamos no') || recLower.includes('desactivaste')) return 'excluir';
+      if (!recLower.includes('envi') && item.suggestedUnits > 0) return 'sinRecomendacion';
+      if (!recLower.includes('envi')) return 'excluir';
+      if (item.unitsToSend === 0) return 'excluir';
+      if (item.unitsToSend < item.suggestedUnits) return 'insuficiente';
+      return 'ok';
+    }
+
+    function parseSkuComponent(component) {
+      if (!component) return { sku: '', quantity: 1 };
+      var trimmed = component.trim();
+      var packMatch = trimmed.match(/^(.+)\((\d+)\)$/);
+      if (packMatch) return { sku: packMatch[1].trim(), quantity: parseInt(packMatch[2]) || 1 };
+      return { sku: trimmed, quantity: 1 };
+    }
+
+    function isAnilloSegment(segment) {
+      if (!segment) return false;
+      var upper = segment.toUpperCase().trim();
+      return upper === 'ANILLO' || upper === 'ANILLO+V';
+    }
+
+    function parseSku(sku) {
+      if (!sku || typeof sku !== 'string') return [];
+      var workingSku = sku.trim();
+      if (!workingSku) return [];
+      if (workingSku.startsWith('5') && workingSku.indexOf('/') !== -1) {
+        var parts = workingSku.split('/');
+        return parts.slice(1).map(parseSkuComponent).filter(function(c) { return c.sku.length > 0 && !isAnilloSegment(c.sku); });
+      }
+      if (workingSku.indexOf('/') !== -1) {
+        return workingSku.split('/').map(parseSkuComponent).filter(function(c) { return c.sku.length > 0 && !isAnilloSegment(c.sku); });
+      }
+      if (isAnilloSegment(workingSku)) return [];
+      var parsed = parseSkuComponent(workingSku);
+      return parsed.sku.length > 0 ? [parsed] : [];
+    }
+
+    function findStockForSku(skuToFind, stockRows) {
+      if (!skuToFind || !stockRows) return { found: false, stock: 0, matchType: null };
+      for (var i = 0; i < stockRows.length; i++) {
+        var row = stockRows[i];
+        var sku = (row.sku || '').toString().trim();
+        var skuVariante = (row.sku_variante || '').toString().trim();
+        if (sku === skuToFind) return { found: true, stock: parseNumber(row.deposito_cantidad1), matchType: 'sku' };
+        if (skuVariante === skuToFind) return { found: true, stock: parseNumber(row.deposito_cantidad1), matchType: 'sku_variante' };
+      }
+      return { found: false, stock: 0, matchType: null };
+    }
+
+    function getMayoristaVentas(skuToFind, mayoristaRows) {
+      if (!mayoristaRows || !skuToFind) return 0;
+      for (var i = 0; i < mayoristaRows.length; i++) {
+        var row = mayoristaRows[i];
+        var sku = (row.sku || '').toString().trim();
+        var skuVariante = (row.sku_variante || '').toString().trim();
+        if (sku === skuToFind || skuVariante === skuToFind) return parseNumber(row.Vendidos);
+      }
+      return 0;
+    }
+
+    function getCategoryLabel(cat) {
+      var labels = {
+        'insuficiente': '🔴 Insuf.',
+        'ok': '🟢 OK',
+        'noEncontrado': '⚫ No enc.',
+        'sinRecomendacion': '🟡 Sin rec.',
+        'sinSku': '🟣 Sin SKU',
+        'excluir': '⚪ Excluido',
+        'desvinculado': '🔵 Desvinc.'
+      };
+      return labels[cat] || cat || '';
+    }
+
+    function updateProcessButton() {
+      var hasMeli = meliFiles.some(function(f) { return f.data; });
+      processBtn.disabled = !(stockData && hasMeli);
+    }
+
+    function readExcelFile(file, callback, skipRows) {
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          var wb = XLSX.read(evt.target.result, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var data;
+          if (skipRows) {
+            data = XLSX.utils.sheet_to_json(ws, { range: skipRows });
+          } else {
+            data = XLSX.utils.sheet_to_json(ws);
+          }
+          callback(null, data);
+        } catch (err) {
+          callback(err, null);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function readMeliFile(file, callback) {
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          var wb = XLSX.read(evt.target.result, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var allData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: true, raw: false });
+
+          var headerRowIndex = -1;
+          for (var i = 0; i < Math.min(allData.length, 20); i++) {
+            if (allData[i] && allData[i].some(function(cell) { return cell && cell.toString().trim() === 'SKU'; })) {
+              headerRowIndex = i;
+              break;
+            }
+          }
+          if (headerRowIndex === -1) { callback(new Error('No se encontró encabezado SKU'), null); return; }
+
+          var headers = allData[headerRowIndex].map(function(h) {
+            return h ? h.toString().trim().replace(/\n/g, ' ').replace(/\s+/g, ' ') : '';
+          });
+          var data = [];
+          for (var i = headerRowIndex + 1; i < allData.length; i++) {
+            var row = allData[i];
+            if (!row || !row.some(function(cell) { return cell && cell.toString().trim(); })) continue;
+            var obj = {};
+            headers.forEach(function(h, j) { if (h) obj[h] = row[j] !== undefined ? row[j] : ''; });
+            data.push(obj);
+          }
+          callback(null, data);
+        } catch (err) {
+          callback(err, null);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Event listeners para archivos
+    meliInputs.forEach(function(input, index) {
+      if (!input) return;
+      input.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        meliStatuses[index].textContent = 'Leyendo...';
+        meliStatuses[index].classList.remove('error');
+        readMeliFile(file, function(err, data) {
+          if (err) {
+            meliStatuses[index].textContent = '✗ ' + err.message;
+            meliStatuses[index].classList.add('error');
+            meliFiles[index] = { name: null, data: null };
+          } else {
+            meliStatuses[index].textContent = '✓ ' + data.length + ' filas';
+            meliFiles[index] = { name: file.name, data: data };
+          }
+          updateProcessButton();
+        });
+      });
+    });
+
+    if (stockInput) {
+      stockInput.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        stockStatus.textContent = 'Leyendo...';
+        readExcelFile(file, function(err, data) {
+          if (err) {
+            stockStatus.textContent = '✗ Error';
+            stockStatus.classList.add('error');
+            stockData = null;
+          } else {
+            stockStatus.textContent = '✓ ' + data.length + ' productos';
+            stockData = data;
+          }
+          updateProcessButton();
+        });
+      });
+    }
+
+    if (mayoristaInput) {
+      mayoristaInput.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        mayoristaStatus.textContent = 'Leyendo...';
+        readExcelFile(file, function(err, data) {
+          if (err) {
+            mayoristaStatus.textContent = '✗ Error';
+            mayoristaData = null;
+          } else {
+            mayoristaStatus.textContent = '✓ ' + data.length + ' productos';
+            mayoristaData = data;
+          }
+        }, 2);
+      });
+    }
+
+    // Procesar
+    processBtn.addEventListener('click', function() {
+      if (!stockData || meliFiles.every(function(f) { return !f.data; })) {
+        alert('Falta cargar archivos: Stock y al menos un reporte de Meli');
+        return;
+      }
+
+      var allPublicaciones = [];
+      var notFound = [];
+      var validacionPorCuenta = {};
+
+      meliFiles.forEach(function(file, cuentaIndex) {
+        if (!file.data) return;
+        var cuentaName = file.name ? file.name.replace(/\.(xlsx|xls)$/i, '') : 'Cuenta ' + (cuentaIndex + 1);
+        var sumaVerificacion = 0;
+
+        for (var i = 0; i < file.data.length; i++) {
+          var val = file.data[i]['Unidades sugeridas para enviar'];
+          var num = parseNumber(val);
+          if (num > 0) sumaVerificacion += num;
+        }
+
+        validacionPorCuenta[cuentaName] = { totalMeli: sumaVerificacion, totalProcesado: 0 };
+
+        for (var i = 0; i < file.data.length; i++) {
+          var meliRow = file.data[i];
+          var originalSku = (meliRow['SKU'] || '').toString().trim();
+          var suggestedUnits = parseNumber(meliRow['Unidades sugeridas para enviar']);
+          var codigoML = (meliRow['Código ML'] || '').toString().trim();
+          var recommendation = (meliRow['Recomendación'] || '').toString().trim();
+
+          if (!originalSku) {
+            if (suggestedUnits > 0) {
+              allPublicaciones.push({
+                originalSku: '(SIN SKU)', codigoML: codigoML, recommendation: recommendation,
+                suggestedUnits: suggestedUnits, skuComponents: [], cuenta: cuentaName, sinSku: true
+              });
+            }
+            continue;
+          }
+
+          var skuComponents = parseSku(originalSku);
+          if (skuComponents.length === 0) {
+            notFound.push({ sku: originalSku, cuenta: cuentaName, reason: 'SKU inválido', unidades: suggestedUnits });
+            continue;
+          }
+
+          allPublicaciones.push({
+            originalSku: originalSku, codigoML: codigoML, recommendation: recommendation,
+            suggestedUnits: suggestedUnits, skuComponents: skuComponents, cuenta: cuentaName
+          });
+        }
+      });
+
+      // Agrupar por SKU
+      var demandaPorSku = {};
+      var processed = [];
+
+      for (var i = 0; i < allPublicaciones.length; i++) {
+        var pub = allPublicaciones[i];
+        if (pub.sinSku) {
+          processed.push({
+            originalSku: pub.originalSku, codigoML: pub.codigoML, recommendation: pub.recommendation,
+            suggestedUnits: pub.suggestedUnits, availableStock: 0, unitsToSend: 0, stockAfterSend: 0,
+            cuenta: pub.cuenta, mayoristaReservado: 0, category: 'sinSku'
+          });
+          continue;
+        }
+
+        var mainComponent = pub.skuComponents[0];
+        if (!mainComponent) continue;
+        var skuKey = mainComponent.sku;
+
+        if (!demandaPorSku[skuKey]) {
+          demandaPorSku[skuKey] = { publicaciones: [], totalDemandaMeli: 0, mayoristaVentas: 0, stockInfo: null, multiplier: mainComponent.quantity };
+        }
+        demandaPorSku[skuKey].publicaciones.push(pub);
+        demandaPorSku[skuKey].totalDemandaMeli += pub.suggestedUnits * mainComponent.quantity;
+      }
+
+      // Buscar stock
+      Object.keys(demandaPorSku).forEach(function(skuKey) {
+        demandaPorSku[skuKey].stockInfo = findStockForSku(skuKey, stockData);
+        demandaPorSku[skuKey].mayoristaVentas = getMayoristaVentas(skuKey, mayoristaData);
+
+        if (!demandaPorSku[skuKey].stockInfo.found) {
+          demandaPorSku[skuKey].publicaciones.forEach(function(pub) {
+            notFound.push({ sku: pub.originalSku, component: skuKey, cuenta: pub.cuenta, reason: 'SKU no encontrado', unidades: pub.suggestedUnits });
+          });
+        }
+      });
+
+      // Procesar cada grupo
+      Object.keys(demandaPorSku).forEach(function(skuKey) {
+        var grupo = demandaPorSku[skuKey];
+
+        if (!grupo.stockInfo || !grupo.stockInfo.found) {
+          grupo.publicaciones.forEach(function(pub) {
+            processed.push({
+              originalSku: pub.originalSku, codigoML: pub.codigoML, recommendation: pub.recommendation,
+              suggestedUnits: pub.suggestedUnits, availableStock: 0, unitsToSend: 0, stockAfterSend: 0,
+              cuenta: pub.cuenta, mayoristaReservado: 0, category: 'noEncontrado'
+            });
+          });
+          return;
+        }
+
+        var stockDisponible = grupo.stockInfo.stock;
+        var stockUtilizable = Math.max(0, stockDisponible - MIN_STOCK_RESERVE);
+        var demandaTotal = grupo.totalDemandaMeli + grupo.mayoristaVentas;
+
+        var ratio = 1;
+        if (demandaTotal > stockUtilizable && demandaTotal > 0) ratio = stockUtilizable / demandaTotal;
+
+        var stockUsadoMeli = 0;
+        var itemsDelGrupo = [];
+
+        grupo.publicaciones.forEach(function(pub) {
+          var multiplier = pub.skuComponents[0] ? pub.skuComponents[0].quantity : 1;
+          var asignadoStock = Math.floor(pub.suggestedUnits * multiplier * ratio);
+          var unitsToSend = Math.floor(asignadoStock / multiplier);
+          stockUsadoMeli += unitsToSend * multiplier;
+
+          var item = {
+            originalSku: pub.originalSku, codigoML: pub.codigoML, recommendation: pub.recommendation,
+            suggestedUnits: pub.suggestedUnits, availableStock: Math.floor(stockDisponible / multiplier),
+            unitsToSend: unitsToSend, stockAfterSend: 0, cuenta: pub.cuenta, mayoristaReservado: 0
+          };
+          itemsDelGrupo.push(item);
+          processed.push(item);
+        });
+
+        var stockParaMayorista = Math.floor(grupo.mayoristaVentas * ratio);
+        var stockRestante = stockDisponible - stockUsadoMeli - stockParaMayorista;
+
+        itemsDelGrupo.forEach(function(item) {
+          item.stockAfterSend = stockRestante;
+          item.mayoristaReservado = stockParaMayorista;
+          item.category = categorizeItem(item);
+        });
+      });
+
+      // Validación
+      processed.forEach(function(item) {
+        if (validacionPorCuenta[item.cuenta]) {
+          validacionPorCuenta[item.cuenta].totalProcesado += item.suggestedUnits;
+        }
+      });
+
+      // Ordenar
+      processed.sort(function(a, b) {
+        var order = { 'insuficiente': 1, 'ok': 2, 'noEncontrado': 3, 'sinRecomendacion': 4, 'sinSku': 5, 'excluir': 6 };
+        return (order[a.category] || 99) - (order[b.category] || 99);
+      });
+
+      // Guardar resultados
+      plannerResultsData = { main: processed, validacion: validacionPorCuenta };
+      plannerErrors = notFound;
+
+      // Mostrar resultados
+      renderResults();
+    });
+
+    function renderResults() {
+      if (!plannerResultsData) return;
+
+      var main = plannerResultsData.main;
+      var validacion = plannerResultsData.validacion;
+
+      // Warnings
+      if (plannerErrors.length > 0) {
+        warningsDiv.classList.remove('hidden');
+        warningsList.innerHTML = plannerErrors.map(function(e) {
+          return '<div>[' + e.cuenta + '] ' + e.sku + ' - ' + e.unidades + ' uds</div>';
+        }).join('');
+      } else {
+        warningsDiv.classList.add('hidden');
+      }
+
+      // Results
+      resultsDiv.classList.remove('hidden');
+      exportBtn.classList.remove('hidden');
+
+      var totalSugeridas = main.reduce(function(s, r) { return s + r.suggestedUnits; }, 0);
+      var totalEnviar = main.reduce(function(s, r) { return s + r.unitsToSend; }, 0);
+
+      resultsCount.textContent = main.length + ' productos';
+      sugeridas.textContent = totalSugeridas;
+      aEnviar.textContent = totalEnviar;
+
+      // Validación
+      var valHtml = '';
+      Object.keys(validacion).forEach(function(c) {
+        var v = validacion[c];
+        var icon = v.totalMeli === v.totalProcesado ? '✓' : '⚠️ Diff=' + (v.totalMeli - v.totalProcesado);
+        valHtml += c + ': Meli=' + v.totalMeli + ' Proc=' + v.totalProcesado + ' ' + icon + ' | ';
+      });
+      validationDiv.innerHTML = valHtml;
+
+      // Tabla
+      tableBody.innerHTML = main.map(function(r) {
+        return '<tr>' +
+          '<td><span class="planner-cat ' + r.category + '">' + getCategoryLabel(r.category) + '</span></td>' +
+          '<td>' + r.cuenta + '</td>' +
+          '<td class="font-mono">' + r.originalSku.substring(0, 25) + '</td>' +
+          '<td>' + (r.recommendation || '').substring(0, 15) + '</td>' +
+          '<td class="text-right">' + r.suggestedUnits + '</td>' +
+          '<td class="text-right">' + r.availableStock + '</td>' +
+          '<td class="text-right font-bold">' + r.unitsToSend + '</td>' +
+          '<td class="text-right">' + r.mayoristaReservado + '</td>' +
+          '<td class="text-right">' + r.stockAfterSend + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // Exportar
+    exportBtn.addEventListener('click', function() {
+      if (!plannerResultsData || typeof XLSX === 'undefined') return;
+
+      var wb = XLSX.utils.book_new();
+      var cuentas = [];
+      plannerResultsData.main.forEach(function(r) {
+        if (cuentas.indexOf(r.cuenta) === -1) cuentas.push(r.cuenta);
+      });
+
+      cuentas.forEach(function(cuenta) {
+        var data = plannerResultsData.main.filter(function(r) { return r.cuenta === cuenta; }).map(function(r) {
+          return {
+            'Estado': getCategoryLabel(r.category),
+            'SKU': r.originalSku,
+            'Código ML': r.codigoML,
+            'Recomendación': r.recommendation,
+            'Unidades Sugeridas': r.suggestedUnits,
+            'Stock Disponible': r.availableStock,
+            'Unidades a Enviar': r.unitsToSend,
+            'Reservado Mayorista': r.mayoristaReservado,
+            'Stock Restante': r.stockAfterSend
+          };
+        });
+        if (data.length) {
+          var sheetName = cuenta.substring(0, 31).replace(/[\\/*?:\[\]]/g, '');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), sheetName);
+        }
+      });
+
+      if (plannerErrors.length > 0) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(plannerErrors), 'No Encontrados');
+      }
+
+      if (!wb.SheetNames.length) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ Info: 'Sin datos' }]), 'Info');
+      }
+
+      var blob = new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'envio_full_' + new Date().toISOString().split('T')[0] + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     });
   })();
   </script>
