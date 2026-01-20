@@ -1319,6 +1319,51 @@ app.post('/api/colecta/:id/desverificar/:codigoML', async function(req, res) {
   });
 });
 
+// Decrementar 1 unidad de verificación
+app.post('/api/colecta/:id/decrementar/:codigoML', async function(req, res) {
+  var colectaId = req.params.id;
+  var codigoML = req.params.codigoML.trim().toUpperCase();
+
+  var colecta = colectas[colectaId];
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  var item = colecta.items[codigoML];
+  if (!item) {
+    return res.status(404).json({ error: 'Código no está en esta colecta' });
+  }
+
+  var cantVerif = item.cantidadVerificada || 0;
+  if (cantVerif === 0) {
+    return res.json({
+      success: true,
+      mensaje: 'Este código no tiene unidades verificadas',
+      itemVerificado: 0
+    });
+  }
+
+  // Decrementar 1
+  item.cantidadVerificada = cantVerif - 1;
+  if (item.cantidadVerificada === 0) {
+    item.fechaVerificacion = '';
+  }
+
+  await saveColectasToSheets();
+
+  var stats = calcularEstadisticasColecta(colecta);
+
+  res.json({
+    success: true,
+    verificados: stats.verificados,
+    unidadesVerificadas: stats.unidadesVerificadas,
+    pendientes: stats.pendientes,
+    progreso: stats.progreso,
+    itemVerificado: item.cantidadVerificada,
+    mensaje: 'Decrementada 1 unidad'
+  });
+});
+
 // Eliminar una colecta específica
 app.delete('/api/colecta/:id', async function(req, res) {
   var colectaId = req.params.id;
