@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Verificador FULL</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a73e8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    header {
+      background: #1a73e8;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 {
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .stats {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+    .logout-btn {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Login */
+    .login-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-box {
+      background: white;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 360px;
+    }
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      color: #1a73e8;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 14px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .login-error {
+      color: #d32f2f;
+      text-align: center;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    /* Scanner */
+    .scanner-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .scanner-section h3 {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    .scanner-input {
+      display: flex;
+      gap: 8px;
+    }
+    .scanner-input input {
+      flex: 1;
+      padding: 14px;
+      border: 2px solid #1a73e8;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .scanner-input input:focus {
+      outline: none;
+      border-color: #1557b0;
+    }
+    .scanner-input button {
+      padding: 14px 20px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    /* Items */
+    .items-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .item-header h3 {
+      font-size: 16px;
+      color: #333;
+    }
+    .item-cuenta {
+      font-size: 12px;
+      background: #e3f2fd;
+      color: #1a73e8;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .item-producto {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      margin: 8px 0;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #ddd;
+    }
+    .item-row.verified {
+      border-left-color: #4caf50;
+      background: #e8f5e9;
+    }
+    .item-row.verification-only {
+      background: #fff3e0;
+      border-left-color: #ff9800;
+    }
+    .item-checkbox {
+      width: 24px;
+      height: 24px;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+    .item-info {
+      flex: 1;
+    }
+    .item-sku {
+      font-weight: 600;
+      font-size: 16px;
+      color: #333;
+    }
+    .item-description {
+      font-size: 13px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .item-quantity {
+      background: #1a73e8;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Camera button */
+    .camera-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      margin-top: 16px;
+      background: #f5f5f5;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .camera-btn:hover {
+      background: #eee;
+      border-color: #999;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .btn-primary {
+      flex: 1;
+      padding: 16px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      padding: 16px 24px;
+      background: #f5f5f5;
+      color: #666;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Messages */
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .message.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .message.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .message.info {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    /* Vision result */
+    .vision-result {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    .vision-result.correct {
+      background: #e8f5e9;
+      border: 1px solid #4caf50;
+    }
+    .vision-result.incorrect {
+      background: #ffebee;
+      border: 1px solid #f44336;
+    }
+    .vision-result h4 {
+      margin-bottom: 8px;
+    }
+    .vision-result p {
+      font-size: 14px;
+      margin: 4px 0;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-box">
+      <h2>Verificador FULL</h2>
+      <div id="loginError" class="login-error hidden"></div>
+      <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
+      <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
+      <button onclick="login()">Ingresar</button>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="mainApp" class="hidden">
+    <header>
+      <h1>Verificador FULL</h1>
+      <div class="stats" id="statsText">Cargando...</div>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </header>
+
+    <div class="container">
+      <!-- Scanner -->
+      <div class="scanner-section">
+        <h3>Escanear Código ML</h3>
+        <div class="scanner-input">
+          <input type="text" id="codigoInput" placeholder="RRSM05395" autofocus>
+          <button onclick="buscarCodigo()">Buscar</button>
+        </div>
+      </div>
+
+      <!-- Message -->
+      <div id="message" class="message hidden"></div>
+
+      <!-- Items Section -->
+      <div id="itemsSection" class="items-section hidden">
+        <div class="item-header">
+          <h3 id="codigoTitle">-</h3>
+          <span class="item-cuenta" id="cuentaLabel">-</span>
+        </div>
+        <p class="item-producto" id="productoLabel">-</p>
+
+        <div id="itemsList"></div>
+
+        <button class="camera-btn" onclick="openCamera()">
+          <span>📷</span> Verificar con foto
+        </button>
+
+        <div id="visionResult" class="vision-result hidden"></div>
+
+        <div class="actions">
+          <button class="btn-secondary" onclick="limpiar()">Limpiar</button>
+          <button class="btn-primary" id="confirmarBtn" onclick="confirmar()" disabled>
+            Confirmar Verificación
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for camera -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+
+  <script>
+    var currentItems = [];
+    var currentCodigo = null;
+
+    // Check auth on load
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      document.getElementById('codigoInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') buscarCodigo();
+      });
+      document.getElementById('loginPass').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') login();
+      });
+      document.getElementById('cameraInput').addEventListener('change', handlePhoto);
+    });
+
+    async function checkAuth() {
+      try {
+        var res = await fetch('/api/auth/check');
+        var data = await res.json();
+        if (data.authenticated) {
+          showApp();
+          loadStats();
+        } else {
+          showLogin();
+        }
+      } catch (e) {
+        showLogin();
+      }
+    }
+
+    async function login() {
+      var user = document.getElementById('loginUser').value;
+      var pass = document.getElementById('loginPass').value;
+
+      try {
+        var res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        var data = await res.json();
+
+        if (data.success) {
+          showApp();
+          loadStats();
+        } else {
+          document.getElementById('loginError').textContent = data.error || 'Error de login';
+          document.getElementById('loginError').classList.remove('hidden');
+        }
+      } catch (e) {
+        document.getElementById('loginError').textContent = 'Error de conexión';
+        document.getElementById('loginError').classList.remove('hidden');
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      showLogin();
+    }
+
+    function showLogin() {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('mainApp').classList.add('hidden');
+    }
+
+    function showApp() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('codigoInput').focus();
+    }
+
+    async function loadStats() {
+      try {
+        var res = await fetch('/api/stats');
+        var data = await res.json();
+        document.getElementById('statsText').textContent = data.totalCodigos + ' códigos cargados';
+      } catch (e) {
+        document.getElementById('statsText').textContent = 'Error cargando stats';
+      }
+    }
+
+    async function buscarCodigo() {
+      var codigo = document.getElementById('codigoInput').value.trim().toUpperCase();
+      if (!codigo) return;
+
+      showMessage('Buscando...', 'info');
+
+      try {
+        var res = await fetch('/api/codigo/' + encodeURIComponent(codigo));
+        var data = await res.json();
+
+        if (res.ok) {
+          hideMessage();
+          currentCodigo = data;
+          currentItems = data.items.map(function(item) {
+            return { ...item, verified: false };
+          });
+          renderItems();
+          document.getElementById('itemsSection').classList.remove('hidden');
+          document.getElementById('codigoInput').value = '';
+          document.getElementById('codigoInput').focus();
+        } else {
+          showMessage(data.error || 'Código no encontrado', 'error');
+          document.getElementById('itemsSection').classList.add('hidden');
+        }
+      } catch (e) {
+        showMessage('Error de conexión', 'error');
+      }
+    }
+
+    function renderItems() {
+      var html = '';
+      currentItems.forEach(function(item, index) {
+        var verifiedClass = item.verified ? 'verified' : '';
+        var verificationClass = item.isVerificationOnly ? 'verification-only' : '';
+        var qty = item.displayQuantity || item.quantity;
+
+        html += '<div class="item-row ' + verifiedClass + ' ' + verificationClass + '">';
+        html += '<input type="checkbox" class="item-checkbox" ' + (item.verified ? 'checked' : '') + ' onchange="toggleItem(' + index + ')">';
+        html += '<div class="item-info">';
+        html += '<div class="item-sku">' + item.sku + '</div>';
+        html += '<div class="item-description">' + (item.description || '') + '</div>';
+        html += '</div>';
+        html += '<span class="item-quantity">x' + qty + '</span>';
+        html += '</div>';
+      });
+
+      document.getElementById('itemsList').innerHTML = html;
+      document.getElementById('codigoTitle').textContent = currentCodigo.codigoML;
+      document.getElementById('cuentaLabel').textContent = currentCodigo.cuenta;
+      document.getElementById('productoLabel').textContent = currentCodigo.producto;
+
+      updateConfirmButton();
+    }
+
+    function toggleItem(index) {
+      currentItems[index].verified = !currentItems[index].verified;
+      renderItems();
+    }
+
+    function updateConfirmButton() {
+      var allVerified = currentItems.every(function(item) { return item.verified; });
+      document.getElementById('confirmarBtn').disabled = !allVerified;
+    }
+
+    function openCamera() {
+      document.getElementById('cameraInput').click();
+    }
+
+    async function handlePhoto(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+
+      var reader = new FileReader();
+      reader.onload = async function(event) {
+        var base64 = event.target.result;
+
+        // Find first unverified item for comparison
+        var itemToVerify = currentItems.find(function(item) {
+          return !item.verified && !item.isVerificationOnly;
+        });
+
+        showMessage('Analizando imagen con IA...', 'info');
+
+        try {
+          var res = await fetch('/api/vision/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image: base64,
+              producto: itemToVerify ? {
+                sku: itemToVerify.sku,
+                descripcion: itemToVerify.description,
+                producto: currentCodigo.producto
+              } : null
+            })
+          });
+
+          var data = await res.json();
+          hideMessage();
+
+          if (data.success) {
+            showVisionResult(data);
+          } else {
+            showMessage(data.error || 'Error analizando imagen', 'error');
+          }
+        } catch (err) {
+          showMessage('Error de conexión', 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    function showVisionResult(data) {
+      var resultDiv = document.getElementById('visionResult');
+      var isCorrect = data.correcto !== false;
+
+      resultDiv.className = 'vision-result ' + (isCorrect ? 'correct' : 'incorrect');
+
+      var html = '<h4>' + (isCorrect ? '✅ Verificado' : '❌ No coincide') + '</h4>';
+      if (data.modeloDetectado) html += '<p><strong>Modelo:</strong> ' + data.modeloDetectado + '</p>';
+      if (data.colorDetectado) html += '<p><strong>Color:</strong> ' + data.colorDetectado + '</p>';
+      if (data.productoDetectado) html += '<p><strong>Detectado:</strong> ' + data.productoDetectado + '</p>';
+      if (data.motivo) html += '<p><strong>Motivo:</strong> ' + data.motivo + '</p>';
+      html += '<p><strong>Confianza:</strong> ' + (data.confianza || 'N/A') + '</p>';
+
+      resultDiv.innerHTML = html;
+      resultDiv.classList.remove('hidden');
+
+      // Auto-check first unverified item if correct
+      if (isCorrect) {
+        var index = currentItems.findIndex(function(item) {
+          return !item.verified && !item.isVerificationOnly;
+        });
+        if (index >= 0) {
+          currentItems[index].verified = true;
+          renderItems();
+        }
+      }
+    }
+
+    function confirmar() {
+      showMessage('✅ Verificación completada para ' + currentCodigo.codigoML, 'success');
+      limpiar();
+    }
+
+    function limpiar() {
+      currentCodigo = null;
+      currentItems = [];
+      document.getElementById('itemsSection').classList.add('hidden');
+      document.getElementById('visionResult').classList.add('hidden');
+      document.getElementById('codigoInput').focus();
+    }
+
+    function showMessage(text, type) {
+      var msgDiv = document.getElementById('message');
+      msgDiv.textContent = text;
+      msgDiv.className = 'message ' + type;
+      msgDiv.classList.remove('hidden');
+    }
+
+    function hideMessage() {
+      document.getElementById('message').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
