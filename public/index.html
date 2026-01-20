@@ -119,6 +119,28 @@
     /* Reset button */
     .reset-btn { width: 100%; padding: 14px; margin-top: 16px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
 
+    /* Scanned items dropdown */
+    .scanned-dropdown { background: white; border-radius: 12px; margin-top: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+    .scanned-dropdown.hidden { display: none; }
+    .scanned-dropdown-header { padding: 14px 16px; background: #f3f4f6; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+    .scanned-dropdown-header h3 { font-size: 15px; font-weight: 600; color: #374151; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .scanned-dropdown-toggle { font-size: 12px; color: #6b7280; transition: transform 0.2s; }
+    .scanned-dropdown.open .scanned-dropdown-toggle { transform: rotate(180deg); }
+    .scanned-dropdown-badge { background: #059669; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .scanned-dropdown-badge.pending { background: #f59e0b; }
+    .scanned-dropdown-list { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .scanned-dropdown.open .scanned-dropdown-list { max-height: 400px; overflow-y: auto; }
+    .scanned-item { padding: 12px 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .scanned-item-info { flex: 1; }
+    .scanned-item-code { font-size: 13px; font-weight: 600; color: #111827; font-family: monospace; }
+    .scanned-item-desc { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .scanned-item-status { text-align: right; }
+    .scanned-item-count { font-size: 14px; font-weight: 700; }
+    .scanned-item-count.complete { color: #22c55e; }
+    .scanned-item-count.partial { color: #f59e0b; }
+    .scanned-item-count.pending { color: #9ca3af; }
+    .scanned-item-label { font-size: 10px; color: #6b7280; text-transform: uppercase; }
+
     .hidden { display: none !important; }
 
     /* Login */
@@ -602,6 +624,18 @@
 
     <div class="status-message" id="statusMessage"></div>
 
+    <!-- Lista desplegable de items escaneados -->
+    <div class="scanned-dropdown hidden" id="scannedDropdown">
+      <div class="scanned-dropdown-header" id="scannedDropdownHeader">
+        <h3>
+          <span>Items escaneados</span>
+          <span class="scanned-dropdown-badge" id="scannedBadge">0/0</span>
+        </h3>
+        <span class="scanned-dropdown-toggle">▼</span>
+      </div>
+      <div class="scanned-dropdown-list" id="scannedList"></div>
+    </div>
+
     <div class="items-section hidden" id="itemsSection">
       <div class="items-header">
         <h2>Productos a verificar</h2>
@@ -801,6 +835,13 @@
       var visionCanvas = document.getElementById('visionCanvas');
       var visionStream = null;
 
+      // Scanned items dropdown elements
+      var scannedDropdown = document.getElementById('scannedDropdown');
+      var scannedDropdownHeader = document.getElementById('scannedDropdownHeader');
+      var scannedBadge = document.getElementById('scannedBadge');
+      var scannedList = document.getElementById('scannedList');
+      var scannedItems = {}; // { codigoML: { cantidad, cantidadVerificada, descripcion } }
+
       // ============================================
       // MAIN TABS (solo web, no PWA)
       // ============================================
@@ -885,6 +926,10 @@
             colectasData = data.colectas || [];
             colectasCount.textContent = data.total;
             renderColectas();
+            // Recargar items si hay colecta activa
+            if (colectaActivaId) {
+              cargarItemsColectaActiva();
+            }
           })
           .catch(function(err) {
             console.error('Error cargando colectas:', err);
@@ -999,7 +1044,82 @@
         resetBtn.classList.add('hidden');
         completeBanner.classList.remove('show');
         codigoInput.value = '';
+        // Cargar items de la colecta activa
+        cargarItemsColectaActiva();
       });
+
+      // ============================================
+      // LISTA DESPLEGABLE DE ITEMS ESCANEADOS
+      // ============================================
+      scannedDropdownHeader.onclick = function() {
+        scannedDropdown.classList.toggle('open');
+      };
+
+      function cargarItemsColectaActiva() {
+        if (!colectaActivaId) {
+          scannedDropdown.classList.add('hidden');
+          scannedItems = {};
+          return;
+        }
+
+        fetch('/api/colecta/' + colectaActivaId, { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            scannedItems = {};
+            if (data.items && data.items.length > 0) {
+              data.items.forEach(function(item) {
+                scannedItems[item.codigoML] = {
+                  cantidad: item.cantidad,
+                  cantidadVerificada: item.cantidadVerificada || 0,
+                  descripcion: item.descripcion || item.sku || item.codigoML
+                };
+              });
+            }
+            actualizarListaEscaneados();
+          })
+          .catch(function(err) {
+            console.error('Error cargando items de colecta:', err);
+          });
+      }
+
+      function actualizarListaEscaneados() {
+        var codigos = Object.keys(scannedItems);
+        if (codigos.length === 0) {
+          scannedDropdown.classList.add('hidden');
+          return;
+        }
+
+        scannedDropdown.classList.remove('hidden');
+
+        var totalItems = codigos.length;
+        var completados = 0;
+        var html = '';
+
+        codigos.forEach(function(codigo) {
+          var item = scannedItems[codigo];
+          var esCompleto = item.cantidadVerificada >= item.cantidad;
+          var esParcial = item.cantidadVerificada > 0 && !esCompleto;
+          if (esCompleto) completados++;
+
+          var statusClass = esCompleto ? 'complete' : (esParcial ? 'partial' : 'pending');
+          var statusText = esCompleto ? 'Completo' : (esParcial ? 'Parcial' : 'Pendiente');
+
+          html += '<div class="scanned-item">';
+          html += '<div class="scanned-item-info">';
+          html += '<div class="scanned-item-code">' + codigo + '</div>';
+          html += '<div class="scanned-item-desc">' + item.descripcion + '</div>';
+          html += '</div>';
+          html += '<div class="scanned-item-status">';
+          html += '<div class="scanned-item-count ' + statusClass + '">' + item.cantidadVerificada + '/' + item.cantidad + '</div>';
+          html += '<div class="scanned-item-label">' + statusText + '</div>';
+          html += '</div>';
+          html += '</div>';
+        });
+
+        scannedList.innerHTML = html;
+        scannedBadge.textContent = completados + '/' + totalItems;
+        scannedBadge.className = 'scanned-dropdown-badge' + (completados < totalItems ? ' pending' : '');
+      }
 
       function renderListaColectas() {
         if (colectasData.length === 0) {
@@ -1327,8 +1447,18 @@
         .then(function(data) {
           if (data.success) {
             loadColectas();
+            // Actualizar lista de escaneados
+            if (scannedItems[codigoML]) {
+              scannedItems[codigoML].cantidadVerificada = data.itemVerificado || (scannedItems[codigoML].cantidadVerificada + 1);
+              actualizarListaEscaneados();
+            } else {
+              // Recargar items si no está en la lista
+              cargarItemsColectaActiva();
+            }
             if (data.yaVerificado) {
-              showStatus('Este código ya estaba verificado', 'loading');
+              showStatus(data.mensaje || 'Este código ya estaba verificado', 'loading');
+            } else {
+              showStatus(data.mensaje || 'Verificado', 'success');
             }
           }
         })
