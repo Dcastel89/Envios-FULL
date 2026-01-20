@@ -342,6 +342,10 @@ async function parseColectaPDF(pdfBuffer) {
   var data = await pdfParse(pdfBuffer);
   var text = data.text;
 
+  console.log('========== DEBUG PDF PARSER ==========');
+  console.log('Texto total length:', text.length);
+  console.log('Primeros 500 chars:', JSON.stringify(text.substring(0, 500)));
+
   var items = {};
   var totalUnits = 0;
   var envioId = '';
@@ -353,6 +357,7 @@ async function parseColectaPDF(pdfBuffer) {
   if (envioMatch) {
     envioId = envioMatch[1];
   }
+  console.log('Envío ID:', envioId);
 
   // Extraer totales declarados (ej: "Productos del envío: 28 | Total de unidades: 162")
   var totalesMatch = text.match(/Productos del envío:\s*(\d+)\s*\|\s*Total de unidades:\s*(\d+)/i);
@@ -360,6 +365,7 @@ async function parseColectaPDF(pdfBuffer) {
     totalProductos = parseInt(totalesMatch[1], 10);
     totalUnidadesDeclaradas = parseInt(totalesMatch[2], 10);
   }
+  console.log('Totales declarados:', totalProductos, 'productos,', totalUnidadesDeclaradas, 'unidades');
 
   // Extraer todos los códigos ML en orden de aparición
   var codigoMLRegex = /Código\s*ML:\s*([A-Z]{4}\d{5})/gi;
@@ -369,6 +375,7 @@ async function parseColectaPDF(pdfBuffer) {
   while ((match = codigoMLRegex.exec(text)) !== null) {
     codigosOrdenados.push(match[1].toUpperCase());
   }
+  console.log('Códigos ML encontrados:', codigosOrdenados.length);
 
   // =====================================================
   // ESTRATEGIA MEJORADA: Extraer cantidades del formato tabular
@@ -378,7 +385,10 @@ async function parseColectaPDF(pdfBuffer) {
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   var lines = text.split('\n');
+  console.log('Total de líneas:', lines.length);
+
   var cantidades = [];
+  var lineasConNumeroSolo = [];
 
   // MÉTODO 1: Buscar números en líneas propias o con bullets
   for (var i = 0; i < lines.length; i++) {
@@ -395,6 +405,7 @@ async function parseColectaPDF(pdfBuffer) {
       var num = parseInt(line, 10);
       if (num > 0 && num < 500) {
         cantidades.push(num);
+        lineasConNumeroSolo.push({ linea: i, valor: num });
       }
     }
 
@@ -404,9 +415,14 @@ async function parseColectaPDF(pdfBuffer) {
       var numBullet = parseInt(matchBullet[1], 10);
       if (numBullet > 0 && numBullet < 500) {
         cantidades.push(numBullet);
+        lineasConNumeroSolo.push({ linea: i, valor: numBullet, tipo: 'bullet' });
       }
     }
   }
+
+  console.log('MÉTODO 1 - Números en líneas propias:', cantidades.length);
+  console.log('Primeras 10 líneas con número:', JSON.stringify(lineasConNumeroSolo.slice(0, 10)));
+  console.log('Suma método 1:', cantidades.reduce(function(a,b){return a+b;}, 0));
 
   // MÉTODO 2: Si no encontramos suficientes, buscar patrón "obligatorio" seguido de número
   if (cantidades.length < codigosOrdenados.length) {
@@ -422,6 +438,7 @@ async function parseColectaPDF(pdfBuffer) {
         cantidades.push(numObl);
       }
     }
+    console.log('MÉTODO 2 - obligatorio+número:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
   }
 
   // MÉTODO 3: Buscar patrón "Etiquetado obligatorio" + número en siguiente contexto
@@ -431,6 +448,7 @@ async function parseColectaPDF(pdfBuffer) {
 
     // Dividir por cada código ML y extraer el número que sigue
     var secciones = text.split(/Código\s*ML:/i);
+    console.log('Secciones por Código ML:', secciones.length);
     for (var s = 1; s < secciones.length; s++) {
       var seccion = secciones[s];
       // Buscar número después de "obligatorio" o "universal"
@@ -451,7 +469,10 @@ async function parseColectaPDF(pdfBuffer) {
         }
       }
     }
+    console.log('MÉTODO 3 - por secciones:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
   }
+
+  console.log('========== FIN DEBUG ==========');
 
   console.log('Códigos ML encontrados: ' + codigosOrdenados.length);
   console.log('Cantidades extraídas: ' + cantidades.length);
