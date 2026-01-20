@@ -424,52 +424,59 @@ async function parseColectaPDF(pdfBuffer) {
   console.log('Primeras 10 líneas con número:', JSON.stringify(lineasConNumeroSolo.slice(0, 10)));
   console.log('Suma método 1:', cantidades.reduce(function(a,b){return a+b;}, 0));
 
-  // MÉTODO 2: Si no encontramos suficientes, buscar patrón "obligatorio" seguido de número
+  // MÉTODO 2: Buscar número ANTES de "Etiquetado" (formato inline de tabla)
+  // Este es el patrón que usa el código React que funciona bien
   if (cantidades.length < codigosOrdenados.length) {
-    console.log('Método 1 insuficiente (' + cantidades.length + '), probando método 2...');
+    console.log('Método 1 insuficiente (' + cantidades.length + '), probando método 2 (número antes de Etiquetado)...');
     cantidades = [];
 
-    // Buscar patrón: "obligatorio" seguido eventualmente por un número
-    var obligatorioRegex = /obligatorio\s*(\d{1,3})\b/gi;
-    var matchObl;
-    while ((matchObl = obligatorioRegex.exec(text)) !== null) {
-      var numObl = parseInt(matchObl[1], 10);
-      if (numObl > 0 && numObl < 500) {
-        cantidades.push(numObl);
+    // Buscar patrón: número seguido de "Etiquetado"
+    var etiquetadoRegex = /(\d{1,4})\s*Etiquetado/gi;
+    var matchEtiq;
+    while ((matchEtiq = etiquetadoRegex.exec(text)) !== null) {
+      var numEtiq = parseInt(matchEtiq[1], 10);
+      if (numEtiq > 0 && numEtiq < 500) {
+        cantidades.push(numEtiq);
       }
     }
-    console.log('MÉTODO 2 - obligatorio+número:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
+    console.log('MÉTODO 2 - número+Etiquetado:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
   }
 
-  // MÉTODO 3: Buscar patrón "Etiquetado obligatorio" + número en siguiente contexto
+  // MÉTODO 3: Buscar número ANTES de "Código universal" (alternativa)
   if (cantidades.length < codigosOrdenados.length) {
-    console.log('Método 2 insuficiente (' + cantidades.length + '), probando método 3...');
+    console.log('Método 2 insuficiente (' + cantidades.length + '), probando método 3 (número antes de Código universal)...');
     cantidades = [];
 
-    // Dividir por cada código ML y extraer el número que sigue
-    var secciones = text.split(/Código\s*ML:/i);
-    console.log('Secciones por Código ML:', secciones.length);
+    var universalRegex = /(\d{1,4})\s*Código\s*universal/gi;
+    var matchUniv;
+    while ((matchUniv = universalRegex.exec(text)) !== null) {
+      var numUniv = parseInt(matchUniv[1], 10);
+      if (numUniv > 0 && numUniv < 500) {
+        cantidades.push(numUniv);
+      }
+    }
+    console.log('MÉTODO 3 - número+Código universal:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
+  }
+
+  // MÉTODO 4: Dividir por SKU y buscar número antes de Etiquetado en cada sección
+  if (cantidades.length < codigosOrdenados.length) {
+    console.log('Método 3 insuficiente (' + cantidades.length + '), probando método 4 (por secciones SKU)...');
+    cantidades = [];
+
+    var secciones = text.split(/SKU:/i);
+    console.log('Secciones por SKU:', secciones.length - 1);
     for (var s = 1; s < secciones.length; s++) {
       var seccion = secciones[s];
-      // Buscar número después de "obligatorio" o "universal"
-      var matchSeccion = seccion.match(/(?:obligatorio|universal)\s*(\d{1,3})\b/i);
+      // Buscar número antes de "Etiquetado" en esta sección
+      var matchSeccion = seccion.match(/(\d{1,4})\s*Etiquetado/i);
       if (matchSeccion) {
         var numSec = parseInt(matchSeccion[1], 10);
         if (numSec > 0 && numSec < 500) {
           cantidades.push(numSec);
         }
-      } else {
-        // Fallback: buscar primer número aislado en la sección
-        var matchNum = seccion.match(/\b(\d{1,3})\b/);
-        if (matchNum) {
-          var numFallback = parseInt(matchNum[1], 10);
-          if (numFallback > 0 && numFallback < 500) {
-            cantidades.push(numFallback);
-          }
-        }
       }
     }
-    console.log('MÉTODO 3 - por secciones:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
+    console.log('MÉTODO 4 - por secciones SKU:', cantidades.length, 'suma:', cantidades.reduce(function(a,b){return a+b;}, 0));
   }
 
   console.log('========== FIN DEBUG ==========');
