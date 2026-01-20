@@ -283,6 +283,10 @@
     #sectionCreacion .transfer-section { border: none; margin-top: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     #sectionCreacion .transfer-section h2::before { content: ''; }
 
+    /* Plantilla download link */
+    .plantilla-download-link { display: block; text-align: center; padding: 10px 16px; margin-bottom: 12px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; color: #166534; font-size: 13px; font-weight: 500; text-decoration: none; transition: all 0.2s; }
+    .plantilla-download-link:hover { background: #dcfce7; border-color: #4ade80; }
+
     /* Creación - Tabs internos */
     .creacion-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
     .creacion-tab { flex: 1; padding: 12px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
@@ -368,6 +372,11 @@
   <div class="container">
     <!-- SECCIÓN: Creación de Colectas (solo web) -->
     <div class="main-section" id="sectionCreacion">
+      <!-- Descargar plantilla ML -->
+      <a href="/plantilla-ml.xlsx" download="Excel para subir a ML.xlsx" class="plantilla-download-link">
+        📥 Descargar plantilla Excel para MercadoLibre
+      </a>
+
       <!-- Tabs internos -->
       <div class="creacion-tabs">
         <button type="button" class="creacion-tab active" data-tab="planificador">
