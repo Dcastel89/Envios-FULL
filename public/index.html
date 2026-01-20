@@ -430,6 +430,74 @@
     .planner-cat.sinRecomendacion { background: #fef3c7; color: #92400e; }
     .planner-cat.sinSku { background: #f3e8ff; color: #6b21a8; }
     .planner-cat.excluir { background: #f3f4f6; color: #6b7280; }
+
+    /* Celebración de colecta completada */
+    .celebration-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .celebration-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .celebration-text {
+      font-size: 48px;
+      font-weight: 900;
+      color: #22c55e;
+      text-align: center;
+      text-shadow: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3);
+      animation: celebrationPulse 0.5s ease-in-out infinite alternate;
+      padding: 20px;
+      line-height: 1.2;
+    }
+    .celebration-subtext {
+      font-size: 24px;
+      color: white;
+      margin-top: 16px;
+      opacity: 0.9;
+    }
+    @keyframes celebrationPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10000;
+      overflow: hidden;
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      opacity: 0;
+    }
+    @keyframes confettiFall {
+      0% {
+        opacity: 1;
+        transform: translateY(-10px) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(100vh) rotate(720deg);
+      }
+    }
   </style>
 </head>
 <body>
@@ -448,6 +516,13 @@
       </form>
     </div>
   </div>
+
+  <!-- Celebration Overlay -->
+  <div class="celebration-overlay" id="celebrationOverlay">
+    <div class="celebration-text" id="celebrationText">COLECTA<br>COMPLETADA</div>
+    <div class="celebration-subtext" id="celebrationSubtext"></div>
+  </div>
+  <div class="confetti-container" id="confettiContainer"></div>
 
   <!-- Logout Button -->
   <button type="button" class="logout-btn hidden" id="logoutBtn">Salir</button>
@@ -977,6 +1052,63 @@
       var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       var activeMainSection = 'seguimiento'; // 'creacion' o 'seguimiento'
 
+      // ============================================
+      // CELEBRACIÓN DE COLECTA COMPLETADA
+      // ============================================
+      var celebrationOverlay = document.getElementById('celebrationOverlay');
+      var celebrationText = document.getElementById('celebrationText');
+      var celebrationSubtext = document.getElementById('celebrationSubtext');
+      var confettiContainer = document.getElementById('confettiContainer');
+      var lastCelebratedColectaId = null; // Para evitar celebrar la misma colecta múltiples veces
+
+      function createConfetti() {
+        var colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+        var confettiCount = 150;
+
+        confettiContainer.innerHTML = '';
+
+        for (var i = 0; i < confettiCount; i++) {
+          var confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + '%';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.width = (Math.random() * 10 + 5) + 'px';
+          confetti.style.height = (Math.random() * 10 + 5) + 'px';
+          confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+          confetti.style.animation = 'confettiFall ' + (Math.random() * 2 + 2) + 's linear forwards';
+          confetti.style.animationDelay = Math.random() * 0.5 + 's';
+          confettiContainer.appendChild(confetti);
+        }
+      }
+
+      function showCelebration(colectaNombre) {
+        celebrationSubtext.textContent = colectaNombre || '';
+        celebrationOverlay.classList.add('show');
+        createConfetti();
+
+        // Vibración de celebración
+        if (navigator.vibrate) {
+          navigator.vibrate([200, 100, 200, 100, 400]);
+        }
+
+        // Cerrar automáticamente después de 4 segundos
+        setTimeout(function() {
+          hideCelebration();
+        }, 4000);
+      }
+
+      function hideCelebration() {
+        celebrationOverlay.classList.remove('show');
+        setTimeout(function() {
+          confettiContainer.innerHTML = '';
+        }, 500);
+      }
+
+      // Cerrar celebración al hacer click
+      celebrationOverlay.onclick = function() {
+        hideCelebration();
+      };
+
       if (!isPWA) {
         // Mostrar tabs solo en web
         mainTabs.classList.add('show');
@@ -1051,6 +1183,19 @@
             // Recargar items si hay colecta activa
             if (colectaActivaId) {
               cargarItemsColectaActiva();
+              // Verificar si la colecta activa llegó al 100%
+              var colectaActiva = colectasData.find(function(c) { return c.id === colectaActivaId; });
+              if (colectaActiva) {
+                if (colectaActiva.progreso === 100 && lastCelebratedColectaId !== colectaActivaId) {
+                  // Colecta llegó al 100%, celebrar!
+                  lastCelebratedColectaId = colectaActivaId;
+                  var nombreColecta = colectaActiva.cuenta || colectaActiva.nombre || '';
+                  showCelebration(nombreColecta);
+                } else if (colectaActiva.progreso < 100 && lastCelebratedColectaId === colectaActivaId) {
+                  // Colecta bajó del 100%, resetear para poder celebrar de nuevo si vuelve a completarse
+                  lastCelebratedColectaId = null;
+                }
+              }
             }
           })
           .catch(function(err) {
@@ -1189,6 +1334,13 @@
 
       colectaActivaSelect.addEventListener('change', function() {
         colectaActivaId = this.value || null;
+        // Si la colecta seleccionada ya está al 100%, marcarla como celebrada para no celebrar al seleccionar
+        var colectaSeleccionada = colectasData.find(function(c) { return c.id === colectaActivaId; });
+        if (colectaSeleccionada && colectaSeleccionada.progreso === 100) {
+          lastCelebratedColectaId = colectaActivaId;
+        } else {
+          lastCelebratedColectaId = null;
+        }
         mostrarInfoColectaActiva();
         // Limpiar búsqueda anterior
         itemsSection.classList.add('hidden');
