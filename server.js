@@ -5,6 +5,11 @@ const path = require('path');
 const crypto = require('crypto');
 const { google } = require('googleapis');
 const Anthropic = require('@anthropic-ai/sdk');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+
+// Configurar multer para archivos en memoria
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -146,6 +151,57 @@ if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) 
 
 var codigosCache = {}; // CodigoML -> { cuenta, sku, producto }
 
+// ============================================
+// COLECTAS (múltiples)
+// ============================================
+
+var colectas = {}; // id -> colecta
+// Estructura de cada colecta: {
+//   id: string,
+//   nombre: string (opcional),
+//   fecha: string (YYYY-MM-DD de carga),
+//   fechaColecta: string (fecha de la colecta FULL),
+//   items: { codigoML: { cantidad: number, verificado: boolean, fechaVerificacion: string } }
+//   totalItems: number,
+//   totalUnits: number,
+//   verificados: number
+// }
+
+function generarIdColecta() {
+  return 'col_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+}
+
+// Helper: calcular estadísticas de una colecta (centralizado)
+function calcularEstadisticasColecta(colecta) {
+  var verificados = 0;
+  var unidadesVerificadas = 0;
+  var pendientes = 0;
+  var listaPendientes = [];
+
+  Object.keys(colecta.items).forEach(function(codigoML) {
+    var item = colecta.items[codigoML];
+    if (item.verificado) {
+      verificados++;
+      unidadesVerificadas += item.cantidad;
+    } else {
+      pendientes++;
+      listaPendientes.push(codigoML);
+    }
+  });
+
+  var progreso = colecta.totalUnits > 0
+    ? Math.round((unidadesVerificadas / colecta.totalUnits) * 100)
+    : 0;
+
+  return {
+    verificados: verificados,
+    unidadesVerificadas: unidadesVerificadas,
+    pendientes: pendientes,
+    listaPendientes: listaPendientes,
+    progreso: progreso
+  };
+}
+
 async function loadCodigosFromSheets() {
   if (!sheets || !SHEET_ID) {
     console.log('Sheets no configurado');
@@ -245,6 +301,302 @@ function parseSKU(sku) {
 }
 
 // ============================================
+// FUNCIONES DE COLECTA
+// ============================================
+
+// Parsear PDF de colecta FULL (extrae códigos ML y cantidades)
+async function parseColectaPDF(pdfBuffer) {
+  var data = await pdfParse(pdfBuffer);
+  var text = data.text;
+
+  var items = {};
+  var totalUnits = 0;
+  var envioId = '';
+  var totalProductos = 0;
+  var totalUnidadesDeclaradas = 0;
+
+  // Extraer número de envío (ej: "Envío #59627418")
+  var envioMatch = text.match(/Envío\s*#(\d+)/i);
+  if (envioMatch) {
+    envioId = envioMatch[1];
+  }
+
+  // Extraer totales declarados (ej: "Productos del envío: 28 | Total de unidades: 162")
+  var totalesMatch = text.match(/Productos del envío:\s*(\d+)\s*\|\s*Total de unidades:\s*(\d+)/i);
+  if (totalesMatch) {
+    totalProductos = parseInt(totalesMatch[1], 10);
+    totalUnidadesDeclaradas = parseInt(totalesMatch[2], 10);
+  }
+
+  // Extraer todos los códigos ML en orden de aparición
+  var codigoMLRegex = /Código\s*ML:\s*([A-Z]{4}\d{5})/gi;
+  var match;
+  var codigosOrdenados = [];
+
+  while ((match = codigoMLRegex.exec(text)) !== null) {
+    codigosOrdenados.push(match[1].toUpperCase());
+  }
+
+  // Extraer todas las cantidades (números solos de 1-3 dígitos en líneas propias)
+  // El PDF de MeLi tiene las cantidades en la columna UNIDADES, que se extraen como números sueltos
+  var lines = text.split('\n');
+  var cantidades = [];
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    // Solo números de 1-3 dígitos, solos en la línea
+    // Ignorar líneas que son parte de dimensiones (ej: "14,5 X 2,5" o "20 X 5")
+    if (/^\d{1,3}$/.test(line)) {
+      var num = parseInt(line, 10);
+      // Ignorar 0 y números muy grandes que podrían ser otra cosa
+      if (num > 0 && num < 500) {
+        cantidades.push(num);
+      }
+    }
+  }
+
+  console.log('Códigos encontrados: ' + codigosOrdenados.length);
+  console.log('Cantidades encontradas: ' + cantidades.length);
+  console.log('Cantidades: ' + cantidades.join(', '));
+
+  // Asociar códigos con cantidades en orden
+  // Si hay más cantidades que códigos, las cantidades extra son de encabezados de página (ignorar)
+  // Filtramos las cantidades que coinciden con el número de códigos
+
+  // Estrategia: buscar la secuencia de cantidades que sume el total declarado
+  var cantidadesValidas = [];
+  if (totalUnidadesDeclaradas > 0 && codigosOrdenados.length > 0) {
+    // Intentar encontrar la subsecuencia correcta
+    for (var start = 0; start <= cantidades.length - codigosOrdenados.length; start++) {
+      var subset = cantidades.slice(start, start + codigosOrdenados.length);
+      var suma = subset.reduce(function(a, b) { return a + b; }, 0);
+      if (suma === totalUnidadesDeclaradas) {
+        cantidadesValidas = subset;
+        break;
+      }
+    }
+  }
+
+  // Si no encontramos la secuencia exacta, usar las primeras N cantidades
+  if (cantidadesValidas.length === 0 && cantidades.length >= codigosOrdenados.length) {
+    cantidadesValidas = cantidades.slice(0, codigosOrdenados.length);
+  }
+
+  // Crear items asociando código con cantidad
+  for (var i = 0; i < codigosOrdenados.length; i++) {
+    var codigo = codigosOrdenados[i];
+    var cantidad = cantidadesValidas[i] || 1;
+    items[codigo] = { cantidad: cantidad, verificado: false };
+  }
+
+  // Calcular total de unidades
+  totalUnits = 0;
+  Object.keys(items).forEach(function(k) {
+    totalUnits += items[k].cantidad;
+  });
+
+  console.log('PDF parseado - Envío: ' + envioId + ', Productos: ' + Object.keys(items).length + ', Unidades: ' + totalUnits + ' (declaradas: ' + totalUnidadesDeclaradas + ')');
+
+  // Validación: verificar que las unidades extraídas coincidan con las declaradas
+  var validacion = {
+    ok: true,
+    error: null
+  };
+
+  if (totalUnidadesDeclaradas > 0 && totalUnits !== totalUnidadesDeclaradas) {
+    validacion.ok = false;
+    validacion.error = 'Las unidades extraídas (' + totalUnits + ') no coinciden con las declaradas en el PDF (' + totalUnidadesDeclaradas + ')';
+  }
+
+  if (totalProductos > 0 && Object.keys(items).length !== totalProductos) {
+    validacion.ok = false;
+    validacion.error = 'Los productos extraídos (' + Object.keys(items).length + ') no coinciden con los declarados en el PDF (' + totalProductos + ')';
+  }
+
+  return {
+    items: items,
+    totalItems: Object.keys(items).length,
+    totalUnits: totalUnits,
+    envioId: envioId,
+    totalDeclarado: {
+      productos: totalProductos,
+      unidades: totalUnidadesDeclaradas
+    },
+    validacion: validacion
+  };
+}
+
+// Asegurar que existe la hoja Colectas
+async function ensureColectasSheet() {
+  if (!sheets || !SHEET_ID) return;
+
+  try {
+    var spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    var colectasSheet = spreadsheet.data.sheets.find(function(s) {
+      return s.properties.title === 'Colectas';
+    });
+
+    if (!colectasSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        resource: {
+          requests: [{
+            addSheet: {
+              properties: { title: 'Colectas' }
+            }
+          }]
+        }
+      });
+      console.log('Hoja Colectas creada');
+    }
+  } catch (error) {
+    console.error('Error verificando hoja Colectas:', error.message);
+  }
+}
+
+// Guardar TODAS las colectas en Google Sheets
+async function saveColectasToSheets() {
+  if (!sheets || !SHEET_ID) return;
+
+  try {
+    await ensureColectasSheet();
+
+    // Preparar datos para guardar (todas las colectas)
+    var rows = [['ColectaID', 'CodigoML', 'Cantidad', 'Verificado', 'FechaVerificacion', 'FechaColecta', 'FechaCarga', 'Nombre', 'Cuenta', 'FechaRetiro']];
+
+    Object.keys(colectas).forEach(function(colectaId) {
+      var colecta = colectas[colectaId];
+      Object.keys(colecta.items).forEach(function(codigoML) {
+        var item = colecta.items[codigoML];
+        rows.push([
+          colectaId,
+          codigoML,
+          item.cantidad,
+          item.verificado ? 'SI' : 'NO',
+          item.fechaVerificacion || '',
+          colecta.fechaColecta,
+          colecta.fecha,
+          colecta.nombre || '',
+          colecta.cuenta || '',
+          colecta.fechaRetiro || ''
+        ]);
+      });
+    });
+
+    // Limpiar y escribir datos
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SHEET_ID,
+      range: 'Colectas!A:J'
+    });
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: 'Colectas!A1',
+      valueInputOption: 'RAW',
+      resource: { values: rows }
+    });
+
+    console.log('Colectas guardadas en Sheets: ' + Object.keys(colectas).length + ' colectas');
+  } catch (error) {
+    console.error('Error guardando colectas:', error.message);
+  }
+}
+
+// Cargar TODAS las colectas desde Google Sheets
+async function loadColectasFromSheets() {
+  if (!sheets || !SHEET_ID) return;
+
+  try {
+    var response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: 'Colectas!A:J'
+    });
+
+    var rows = response.data.values || [];
+    if (rows.length <= 1) {
+      colectas = {};
+      return;
+    }
+
+    colectas = {};
+    var hoy = new Date();
+    var colectasExpiradas = [];
+
+    for (var i = 1; i < rows.length; i++) {
+      var row = rows[i];
+      var colectaId = row[0];
+      var codigoML = row[1];
+      var cantidad = parseInt(row[2], 10) || 1;
+      var verificado = row[3] === 'SI';
+      var fechaVerificacion = row[4] || '';
+      var fechaColecta = row[5] || '';
+      var fechaCarga = row[6] || '';
+      var nombre = row[7] || '';
+      var cuenta = row[8] || '';
+      var fechaRetiro = row[9] || '';
+
+      // Verificar si está expirada (más de 1 día después de la colecta)
+      if (fechaColecta) {
+        var fechaCol = new Date(fechaColecta + 'T00:00:00');
+        var diferenciaDias = Math.floor((hoy - fechaCol) / (1000 * 60 * 60 * 24));
+        if (diferenciaDias > 1) {
+          if (!colectasExpiradas.includes(colectaId)) {
+            colectasExpiradas.push(colectaId);
+          }
+          continue; // Saltear items de colectas expiradas
+        }
+      }
+
+      // Crear colecta si no existe
+      if (!colectas[colectaId]) {
+        colectas[colectaId] = {
+          id: colectaId,
+          nombre: nombre,
+          fecha: fechaCarga,
+          fechaColecta: fechaColecta,
+          cuenta: cuenta,
+          fechaRetiro: fechaRetiro,
+          items: {},
+          totalItems: 0,
+          totalUnits: 0,
+          verificados: 0
+        };
+      }
+
+      // Agregar item
+      colectas[colectaId].items[codigoML] = { cantidad, verificado, fechaVerificacion };
+      colectas[colectaId].totalItems++;
+      colectas[colectaId].totalUnits += cantidad;
+      if (verificado) colectas[colectaId].verificados++;
+    }
+
+    // Si hubo colectas expiradas, guardar sin ellas
+    if (colectasExpiradas.length > 0) {
+      console.log('Colectas expiradas eliminadas: ' + colectasExpiradas.join(', '));
+      await saveColectasToSheets();
+    }
+
+    console.log('Colectas cargadas: ' + Object.keys(colectas).length + ' colectas activas');
+  } catch (error) {
+    if (error.message.includes('Unable to parse range')) {
+      colectas = {};
+    } else {
+      console.error('Error cargando colectas:', error.message);
+    }
+  }
+}
+
+// Eliminar una colecta específica
+async function deleteColecta(colectaId) {
+  if (colectas[colectaId]) {
+    delete colectas[colectaId];
+    await saveColectasToSheets();
+    return true;
+  }
+  return false;
+}
+
+// ============================================
 // ENDPOINTS
 // ============================================
 
@@ -340,12 +692,31 @@ app.get('/api/codigo/:codigoML', function(req, res) {
     });
   }
 
+  // Buscar en qué colectas está este código
+  var colectasInfo = [];
+  Object.keys(colectas).forEach(function(colectaId) {
+    var colecta = colectas[colectaId];
+    if (colecta.items[codigoML]) {
+      var itemColecta = colecta.items[codigoML];
+      colectasInfo.push({
+        colectaId: colectaId,
+        fechaColecta: colecta.fechaColecta,
+        nombre: colecta.nombre,
+        cantidad: itemColecta.cantidad,
+        verificado: itemColecta.verificado,
+        fechaVerificacion: itemColecta.fechaVerificacion
+      });
+    }
+  });
+
   res.json({
     codigoML: codigoML,
     cuenta: data.cuenta,
     producto: data.producto,
     skuOriginal: data.sku,
-    items: items
+    items: items,
+    colectas: colectasInfo, // Array de colectas donde está este código
+    enColectas: colectasInfo.length > 0
   });
 });
 
@@ -365,6 +736,409 @@ app.get('/api/stats', function(req, res) {
     totalCodigos: Object.keys(codigosCache).length,
     porCuenta: cuentas
   });
+});
+
+// ============================================
+// ENDPOINTS DE COLECTA (múltiples)
+// ============================================
+
+// DEBUG: Ver qué extrae del PDF (para diagnosticar)
+app.post('/api/colecta/debug-pdf', upload.single('pdf'), async function(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió archivo PDF' });
+    }
+
+    // Usar el parser real para ver qué extrae
+    var resultado = await parseColectaPDF(req.file.buffer);
+
+    // Convertir items a lista para mostrar
+    var itemsList = Object.keys(resultado.items).map(function(codigo) {
+      return {
+        codigo: codigo,
+        cantidad: resultado.items[codigo].cantidad
+      };
+    });
+
+    res.json({
+      envioId: resultado.envioId,
+      productosDeclarados: resultado.totalDeclarado.productos,
+      unidadesDeclaradas: resultado.totalDeclarado.unidades,
+      productosExtraidos: resultado.totalItems,
+      unidadesExtraidas: resultado.totalUnits,
+      validacion: resultado.validacion,
+      items: itemsList
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Subir PDF de colecta
+app.post('/api/colecta/upload', upload.single('pdf'), async function(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió archivo PDF' });
+    }
+
+    var fechaColecta = req.body.fechaColecta;
+    if (!fechaColecta) {
+      return res.status(400).json({ error: 'Falta la fecha de colecta' });
+    }
+
+    // Verificar límite de 5 colectas
+    if (Object.keys(colectas).length >= 5) {
+      return res.status(400).json({ error: 'Máximo 5 colectas activas. Eliminá una para agregar otra.' });
+    }
+
+    // Parsear el PDF
+    var resultado = await parseColectaPDF(req.file.buffer);
+
+    if (resultado.totalItems === 0) {
+      return res.status(400).json({ error: 'No se encontraron códigos ML en el PDF' });
+    }
+
+    // Detectar colectas duplicadas (mismo envioId o mismos códigos)
+    var codigosNuevos = Object.keys(resultado.items).sort().join(',');
+    var colectaDuplicada = null;
+    Object.values(colectas).forEach(function(col) {
+      // Comparar por nombre de envío
+      if (resultado.envioId && col.nombre === 'Envío #' + resultado.envioId) {
+        colectaDuplicada = col;
+        return;
+      }
+      // Comparar por códigos (si tienen exactamente los mismos)
+      var codigosExistentes = Object.keys(col.items).sort().join(',');
+      if (codigosExistentes === codigosNuevos) {
+        colectaDuplicada = col;
+      }
+    });
+
+    if (colectaDuplicada) {
+      return res.status(400).json({
+        error: 'Esta colecta ya existe: ' + colectaDuplicada.nombre,
+        colectaExistente: colectaDuplicada.id
+      });
+    }
+
+    // Validar que las unidades extraídas coincidan con las declaradas
+    if (!resultado.validacion.ok) {
+      return res.status(400).json({
+        error: resultado.validacion.error,
+        detalle: {
+          productosExtraidos: resultado.totalItems,
+          productosDeclarados: resultado.totalDeclarado.productos,
+          unidadesExtraidas: resultado.totalUnits,
+          unidadesDeclaradas: resultado.totalDeclarado.unidades
+        }
+      });
+    }
+
+    // Crear nueva colecta
+    var colectaId = generarIdColecta();
+    var hoy = new Date();
+    var nombre = resultado.envioId ? 'Envío #' + resultado.envioId : 'Colecta ' + fechaColecta;
+    var cuenta = req.body.cuenta || '';
+    var fechaRetiro = req.body.fechaRetiro || '';
+
+    colectas[colectaId] = {
+      id: colectaId,
+      nombre: nombre,
+      fecha: hoy.toISOString().split('T')[0],
+      fechaColecta: fechaColecta,
+      cuenta: cuenta,
+      fechaRetiro: fechaRetiro,
+      items: resultado.items,
+      totalItems: resultado.totalItems,
+      totalUnits: resultado.totalUnits
+      // verificados se calcula dinámicamente con calcularEstadisticasColecta()
+    };
+
+    // Guardar en Sheets
+    await saveColectasToSheets();
+
+    res.json({
+      success: true,
+      mensaje: 'Colecta cargada correctamente',
+      colectaId: colectaId,
+      nombre: nombre,
+      totalCodigos: resultado.totalItems,
+      totalUnidades: resultado.totalUnits,
+      fechaColecta: fechaColecta
+    });
+  } catch (error) {
+    console.error('Error procesando PDF:', error);
+    res.status(500).json({ error: 'Error procesando PDF: ' + error.message });
+  }
+});
+
+// Obtener todas las colectas (lista)
+app.get('/api/colectas', function(req, res) {
+  var lista = Object.values(colectas).map(function(col) {
+    var stats = calcularEstadisticasColecta(col);
+    return {
+      id: col.id,
+      nombre: col.nombre,
+      cuenta: col.cuenta || '',
+      fechaColecta: col.fechaColecta,
+      fechaRetiro: col.fechaRetiro || '',
+      fechaCarga: col.fecha,
+      totalCodigos: col.totalItems,
+      totalUnidades: col.totalUnits,
+      verificados: stats.verificados,
+      unidadesVerificadas: stats.unidadesVerificadas,
+      pendientes: stats.pendientes,
+      progreso: stats.progreso
+    };
+  });
+
+  // Ordenar por fecha de colecta
+  lista.sort(function(a, b) {
+    return new Date(a.fechaColecta) - new Date(b.fechaColecta);
+  });
+
+  res.json({
+    total: lista.length,
+    colectas: lista
+  });
+});
+
+// Obtener una colecta específica
+app.get('/api/colecta/:id', function(req, res) {
+  var colectaId = req.params.id;
+  var colecta = colectas[colectaId];
+
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  var stats = calcularEstadisticasColecta(colecta);
+
+  // Construir lista de items para el response
+  var itemsList = Object.keys(colecta.items).map(function(codigoML) {
+    var item = colecta.items[codigoML];
+    return {
+      codigoML: codigoML,
+      cantidad: item.cantidad,
+      verificado: item.verificado,
+      fechaVerificacion: item.fechaVerificacion || ''
+    };
+  });
+
+  // Ordenar items: pendientes primero, luego verificados
+  itemsList.sort(function(a, b) {
+    if (a.verificado === b.verificado) return a.codigoML.localeCompare(b.codigoML);
+    return a.verificado ? 1 : -1;
+  });
+
+  res.json({
+    id: colecta.id,
+    nombre: colecta.nombre,
+    cuenta: colecta.cuenta || '',
+    fechaColecta: colecta.fechaColecta,
+    fechaRetiro: colecta.fechaRetiro || '',
+    fechaCarga: colecta.fecha,
+    totalCodigos: colecta.totalItems,
+    totalUnidades: colecta.totalUnits,
+    verificados: stats.verificados,
+    unidadesVerificadas: stats.unidadesVerificadas,
+    pendientes: stats.pendientes,
+    listaPendientes: stats.listaPendientes,
+    progreso: stats.progreso,
+    items: itemsList
+  });
+});
+
+// Marcar código como verificado en una colecta específica
+app.post('/api/colecta/:id/verificar/:codigoML', async function(req, res) {
+  var colectaId = req.params.id;
+  var codigoML = req.params.codigoML.trim().toUpperCase();
+
+  var colecta = colectas[colectaId];
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  if (!colecta.items[codigoML]) {
+    return res.status(404).json({ error: 'Código no está en esta colecta' });
+  }
+
+  if (colecta.items[codigoML].verificado) {
+    var statsYa = calcularEstadisticasColecta(colecta);
+    return res.json({
+      success: true,
+      yaVerificado: true,
+      mensaje: 'Este código ya fue verificado',
+      verificados: statsYa.verificados,
+      unidadesVerificadas: statsYa.unidadesVerificadas,
+      pendientes: statsYa.pendientes,
+      progreso: statsYa.progreso
+    });
+  }
+
+  colecta.items[codigoML].verificado = true;
+  colecta.items[codigoML].fechaVerificacion = new Date().toISOString();
+
+  await saveColectasToSheets();
+
+  var stats = calcularEstadisticasColecta(colecta);
+
+  res.json({
+    success: true,
+    verificados: stats.verificados,
+    unidadesVerificadas: stats.unidadesVerificadas,
+    pendientes: stats.pendientes,
+    progreso: stats.progreso
+  });
+});
+
+// Marcar código en TODAS las colectas donde aparece
+app.post('/api/colectas/verificar/:codigoML', async function(req, res) {
+  var codigoML = req.params.codigoML.trim().toUpperCase();
+  var colectasAfectadas = [];
+
+  Object.keys(colectas).forEach(function(colectaId) {
+    var colecta = colectas[colectaId];
+    if (colecta.items[codigoML] && !colecta.items[codigoML].verificado) {
+      colecta.items[codigoML].verificado = true;
+      colecta.items[codigoML].fechaVerificacion = new Date().toISOString();
+      colectasAfectadas.push(colectaId);
+    }
+  });
+
+  if (colectasAfectadas.length > 0) {
+    await saveColectasToSheets();
+  }
+
+  res.json({
+    success: true,
+    colectasAfectadas: colectasAfectadas.length,
+    mensaje: colectasAfectadas.length > 0
+      ? 'Marcado en ' + colectasAfectadas.length + ' colecta(s)'
+      : 'Código no encontrado en ninguna colecta pendiente'
+  });
+});
+
+// Desmarcar código en una colecta
+app.post('/api/colecta/:id/desverificar/:codigoML', async function(req, res) {
+  var colectaId = req.params.id;
+  var codigoML = req.params.codigoML.trim().toUpperCase();
+
+  var colecta = colectas[colectaId];
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  if (!colecta.items[codigoML]) {
+    return res.status(404).json({ error: 'Código no está en esta colecta' });
+  }
+
+  if (!colecta.items[codigoML].verificado) {
+    var statsYa = calcularEstadisticasColecta(colecta);
+    return res.json({
+      success: true,
+      mensaje: 'Este código no estaba verificado',
+      verificados: statsYa.verificados,
+      unidadesVerificadas: statsYa.unidadesVerificadas,
+      pendientes: statsYa.pendientes,
+      progreso: statsYa.progreso
+    });
+  }
+
+  colecta.items[codigoML].verificado = false;
+  colecta.items[codigoML].fechaVerificacion = '';
+
+  await saveColectasToSheets();
+
+  var stats = calcularEstadisticasColecta(colecta);
+
+  res.json({
+    success: true,
+    verificados: stats.verificados,
+    unidadesVerificadas: stats.unidadesVerificadas,
+    pendientes: stats.pendientes,
+    progreso: stats.progreso
+  });
+});
+
+// Eliminar una colecta específica
+app.delete('/api/colecta/:id', async function(req, res) {
+  var colectaId = req.params.id;
+
+  if (!colectas[colectaId]) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  var nombre = colectas[colectaId].nombre;
+  delete colectas[colectaId];
+  await saveColectasToSheets();
+
+  res.json({ success: true, mensaje: 'Colecta "' + nombre + '" eliminada' });
+});
+
+// Actualizar datos de una colecta (cuenta, fecha retiro, nombre)
+app.patch('/api/colecta/:id', async function(req, res) {
+  var colectaId = req.params.id;
+  var colecta = colectas[colectaId];
+
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  // Actualizar campos opcionales
+  if (req.body.cuenta !== undefined) {
+    colecta.cuenta = req.body.cuenta;
+  }
+  if (req.body.fechaRetiro !== undefined) {
+    colecta.fechaRetiro = req.body.fechaRetiro;
+  }
+  if (req.body.nombre !== undefined) {
+    colecta.nombre = req.body.nombre;
+  }
+  if (req.body.fechaColecta !== undefined) {
+    colecta.fechaColecta = req.body.fechaColecta;
+  }
+
+  await saveColectasToSheets();
+
+  res.json({
+    success: true,
+    colecta: {
+      id: colecta.id,
+      nombre: colecta.nombre,
+      cuenta: colecta.cuenta,
+      fechaColecta: colecta.fechaColecta,
+      fechaRetiro: colecta.fechaRetiro
+    }
+  });
+});
+
+// Datos para vista calendario (agrupa por fecha de colecta)
+app.get('/api/colectas/calendario', function(req, res) {
+  var porFecha = {};
+
+  Object.values(colectas).forEach(function(col) {
+    var fecha = col.fechaColecta;
+    if (!porFecha[fecha]) {
+      porFecha[fecha] = [];
+    }
+
+    var stats = calcularEstadisticasColecta(col);
+
+    porFecha[fecha].push({
+      id: col.id,
+      nombre: col.nombre,
+      cuenta: col.cuenta || '',
+      fechaRetiro: col.fechaRetiro || '',
+      totalCodigos: col.totalItems,
+      totalUnidades: col.totalUnits,
+      verificados: stats.verificados,
+      unidadesVerificadas: stats.unidadesVerificadas,
+      progreso: stats.progreso
+    });
+  });
+
+  res.json(porFecha);
 });
 
 // ============================================
@@ -506,7 +1280,11 @@ Respondé SOLO con este JSON:
 
 var PORT = process.env.PORT || 3000;
 
-loadCodigosFromSheets().then(function() {
+// Cargar datos iniciales y arrancar servidor
+Promise.all([
+  loadCodigosFromSheets(),
+  loadColectasFromSheets()
+]).then(function() {
   app.listen(PORT, function() {
     console.log('Servidor corriendo en puerto ' + PORT);
   });

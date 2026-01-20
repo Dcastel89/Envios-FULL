@@ -2,647 +2,1335 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#059669">
   <title>Verificador FULL</title>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#1a73e8">
+  <link rel="manifest" href="manifest.json">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: #f5f5f5;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-    header {
-      background: #1a73e8;
-      color: white;
-      padding: 16px;
-      text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    header h1 {
-      font-size: 20px;
-      font-weight: 500;
-    }
-    .stats {
-      font-size: 12px;
-      opacity: 0.9;
-      margin-top: 4px;
-    }
-    .logout-btn {
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; min-height: 100vh; padding-bottom: 80px; }
+    .header { background: #059669; color: white; padding: 16px; text-align: center; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .stats-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 8px; }
+    .container { padding: 16px; max-width: 500px; margin: 0 auto; }
 
-    /* Login */
-    .login-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .login-box {
-      background: white;
-      padding: 32px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 360px;
-    }
-    .login-box h2 {
-      text-align: center;
-      margin-bottom: 24px;
-      color: #1a73e8;
-    }
-    .login-box input {
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 16px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-    .login-box button {
-      width: 100%;
-      padding: 14px;
-      background: #1a73e8;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .login-error {
-      color: #d32f2f;
-      text-align: center;
-      margin-bottom: 16px;
-      font-size: 14px;
-    }
+    /* Scan section */
+    .scan-section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .scan-input-group { display: flex; gap: 8px; }
+    .scan-input { flex: 1; padding: 14px 16px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; text-transform: uppercase; }
+    .scan-input:focus { outline: none; border-color: #059669; }
+    .scan-btn { padding: 14px 20px; background: #059669; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .scan-btn:disabled { background: #9ca3af; }
 
-    /* Scanner */
-    .scanner-section {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      margin: 16px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .scanner-section h3 {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 12px;
-    }
-    .scanner-input {
-      display: flex;
-      gap: 8px;
-    }
-    .scanner-input input {
-      flex: 1;
-      padding: 14px;
-      border: 2px solid #1a73e8;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: 500;
-      text-transform: uppercase;
-    }
-    .scanner-input input:focus {
-      outline: none;
-      border-color: #1557b0;
-    }
-    .scanner-input button {
-      padding: 14px 20px;
-      background: #1a73e8;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-    }
+    /* Camera button - fixed at bottom */
+    .camera-btn { position: fixed; bottom: 0; left: 0; right: 0; padding: 18px; background: #059669; color: white; border: none; font-size: 18px; font-weight: 600; cursor: pointer; z-index: 90; }
 
-    /* Items */
-    .items-section {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      margin: 16px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #eee;
-    }
-    .item-header h3 {
-      font-size: 16px;
-      color: #333;
-    }
-    .item-cuenta {
-      font-size: 12px;
-      background: #e3f2fd;
-      color: #1a73e8;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-    .item-producto {
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 16px;
-      line-height: 1.4;
-    }
+    /* Camera container */
+    .camera-container { display: none; margin-top: 16px; position: relative; }
+    .camera-container.active { display: block; }
+    #video { width: 100%; border-radius: 8px; }
+    .close-camera { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; }
 
-    .item-row {
-      display: flex;
-      align-items: center;
-      padding: 12px;
-      margin: 8px 0;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border-left: 4px solid #ddd;
-    }
-    .item-row.verified {
-      border-left-color: #4caf50;
-      background: #e8f5e9;
-    }
-    .item-row.verification-only {
-      background: #fff3e0;
-      border-left-color: #ff9800;
-    }
-    .item-checkbox {
-      width: 24px;
-      height: 24px;
-      margin-right: 12px;
-      cursor: pointer;
-    }
-    .item-info {
-      flex: 1;
-    }
-    .item-sku {
-      font-weight: 600;
-      font-size: 16px;
-      color: #333;
-    }
-    .item-description {
-      font-size: 13px;
-      color: #666;
-      margin-top: 2px;
-    }
-    .item-quantity {
-      background: #1a73e8;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-    }
+    /* Status message */
+    .status-message { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; display: none; }
+    .status-message.show { display: block; }
+    .status-message.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .status-message.loading { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .status-message.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 
-    /* Camera button */
-    .camera-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 14px;
-      margin-top: 16px;
-      background: #f5f5f5;
-      border: 2px dashed #ccc;
-      border-radius: 8px;
-      color: #666;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .camera-btn:hover {
-      background: #eee;
-      border-color: #999;
-    }
+    /* Items section */
+    .items-section { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .items-header { padding: 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    .items-header h2 { font-size: 16px; font-weight: 600; color: #374151; }
+    .items-meta { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .items-cuenta { display: inline-block; background: #d1fae5; color: #059669; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+    .items-count { float: right; font-size: 14px; color: #6b7280; }
 
-    /* Actions */
-    .actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-    }
-    .btn-primary {
-      flex: 1;
-      padding: 16px;
-      background: #4caf50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    .btn-primary:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    .btn-secondary {
-      padding: 16px 24px;
-      background: #f5f5f5;
-      color: #666;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+    /* Item card */
+    .item-card { padding: 16px; padding-right: 80px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start; gap: 12px; transition: all 0.3s ease; position: relative; }
+    .item-card:last-child { border-bottom: none; }
+    .item-card.checked { background: #f0fdf4; }
+    .item-card.just-scanned { background: #dcfce7; border-left: 4px solid #22c55e; }
+    .item-card.verification-only { background: #fef3c7; border-left: 4px solid #f59e0b; }
+    .item-card.verification-only.checked { background: #fef9c3; }
 
-    /* Messages */
-    .message {
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin: 16px 0;
-      font-size: 14px;
-    }
-    .message.error {
-      background: #ffebee;
-      color: #c62828;
-    }
-    .message.success {
-      background: #e8f5e9;
-      color: #2e7d32;
-    }
-    .message.info {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
+    .item-main-checkbox { width: 28px; height: 28px; cursor: pointer; flex-shrink: 0; margin-top: 4px; pointer-events: none; }
+    .item-info { flex: 1; }
+    .item-description { font-size: 20px; font-weight: 700; color: #111827; line-height: 1.3; }
+    .item-sku { font-size: 14px; color: #6b7280; margin-top: 6px; font-family: monospace; }
+    .item-quantity { font-size: 18px; color: #111827; font-weight: 700; margin-top: 8px; background: #fef3c7; padding: 6px 12px; border-radius: 6px; display: inline-block; }
+    .item-kit-badge { display: inline-block; background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+
+    /* Unit checkboxes */
+    .unit-checkboxes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e5e7eb; }
+    .unit-checkbox { width: 36px; height: 36px; cursor: pointer; accent-color: #22c55e; }
+    .unit-checkbox.scanned { outline: 3px solid #7c3aed; outline-offset: 2px; }
+
+    /* Verify photo button */
+    .verify-photo-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #7c3aed; color: white; border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(124,58,237,0.4); transition: all 0.2s; }
+    .verify-photo-btn:hover { background: #6d28d9; transform: translateY(-50%) scale(1.1); }
+    .verify-photo-btn:active { background: #5b21b6; transform: translateY(-50%) scale(0.95); }
 
     /* Vision result */
-    .vision-result {
-      margin-top: 16px;
-      padding: 16px;
-      border-radius: 8px;
-    }
-    .vision-result.correct {
-      background: #e8f5e9;
-      border: 1px solid #4caf50;
-    }
-    .vision-result.incorrect {
-      background: #ffebee;
-      border: 1px solid #f44336;
-    }
-    .vision-result h4 {
-      margin-bottom: 8px;
-    }
-    .vision-result p {
-      font-size: 14px;
-      margin: 4px 0;
-    }
+    .vision-result { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 12px; margin: 12px 16px; }
+    .vision-result.correct { background: #dcfce7; border-color: #22c55e; }
+    .vision-result.incorrect { background: #fee2e2; border-color: #ef4444; }
+    .vision-result h4 { margin-bottom: 8px; }
+    .vision-result p { font-size: 13px; margin: 4px 0; }
 
-    /* Loading */
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-    }
-    .spinner {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #1a73e8;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    /* Complete banner */
+    .complete-banner { display: none; position: fixed; bottom: 56px; left: 0; right: 0; background: #22c55e; color: white; padding: 20px; text-align: center; font-size: 18px; font-weight: 600; z-index: 100; }
+    .complete-banner.show { display: block; }
+
+    /* Reset button */
+    .reset-btn { width: 100%; padding: 14px; margin-top: 16px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
 
     .hidden { display: none !important; }
+
+    /* Login */
+    .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #059669 0%, #047857 100%); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .login-overlay.hidden { display: none; }
+    .login-box { background: white; border-radius: 16px; padding: 32px; max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .login-logo { text-align: center; margin-bottom: 24px; }
+    .login-logo h1 { font-size: 24px; color: #059669; margin-bottom: 8px; }
+    .login-logo p { font-size: 14px; color: #6b7280; }
+    .login-form { display: flex; flex-direction: column; gap: 16px; }
+    .login-input { padding: 14px 16px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; outline: none; transition: border-color 0.2s; }
+    .login-input:focus { border-color: #059669; }
+    .login-btn { padding: 14px 20px; background: #059669; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .login-btn:hover { background: #047857; }
+    .login-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .login-error { background: #fef2f2; color: #dc2626; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; display: none; }
+    .login-error.show { display: block; }
+    .logout-btn { position: fixed; top: 12px; right: 12px; background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; z-index: 101; }
+    .logout-btn:hover { background: rgba(255,255,255,0.3); }
+    .logout-btn.hidden { display: none; }
+
+    /* Colectas panel */
+    .colectas-panel { background: white; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+    .colectas-header { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .colectas-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
+    .colectas-tabs { display: flex; gap: 8px; }
+    .colectas-tab { background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .colectas-tab.active { background: white; color: #4f46e5; }
+    .colectas-count { background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 8px; }
+
+    /* Lista de colectas */
+    .colectas-list { max-height: 300px; overflow-y: auto; }
+    .colecta-item { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s; }
+    .colecta-item:hover { background: #f9fafb; }
+    .colecta-item:last-child { border-bottom: none; }
+    .colecta-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .colecta-item-principal { display: flex; flex-direction: column; gap: 2px; }
+    .colecta-item-cuenta-grande { font-size: 18px; font-weight: 700; color: #1d4ed8; }
+    .colecta-item-fecha-grande { font-size: 16px; font-weight: 600; color: #111827; }
+    .colecta-item-envio { font-size: 12px; color: #6b7280; text-align: right; }
+    .colecta-item-name { font-weight: 600; color: #111827; font-size: 14px; }
+    .colecta-item-cuenta { background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .colecta-item-dates { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .colecta-item-progress { background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden; }
+    .colecta-item-progress-bar { background: #22c55e; height: 100%; transition: width 0.3s; }
+    .colecta-item-stats { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #6b7280; }
+    .colecta-item-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .colecta-item-btn { padding: 6px 12px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .colecta-item-btn.edit { background: #e5e7eb; color: #374151; }
+    .colecta-item-btn.delete { background: #fee2e2; color: #dc2626; }
+
+    /* Calendario */
+    .colectas-calendar { padding: 12px; }
+    .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-nav-btn { background: #e5e7eb; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+    .calendar-nav-btn:hover { background: #d1d5db; }
+    .calendar-month { font-size: 16px; font-weight: 600; color: #111827; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .calendar-weekday { text-align: center; font-size: 11px; font-weight: 600; color: #6b7280; padding: 8px 0; }
+    .calendar-cell { background: #f9fafb; border-radius: 6px; display: flex; flex-direction: column; align-items: stretch; padding: 4px; font-size: 12px; cursor: pointer; position: relative; min-height: 70px; }
+    .calendar-cell:hover { background: #e5e7eb; }
+    .calendar-cell.other-month { background: transparent; color: #d1d5db; min-height: 40px; }
+    .calendar-cell.today { background: #dbeafe; font-weight: 700; }
+    .calendar-cell.has-colecta { background: #fff; border: 2px solid #e5e7eb; }
+    .calendar-cell-day { font-weight: 500; text-align: center; margin-bottom: 2px; }
+    .calendar-cell-colectas { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    .calendar-cell-colecta { font-size: 9px; padding: 2px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .calendar-cell-colecta.pending { background: #fef3c7; color: #92400e; }
+    .calendar-cell-colecta.complete { background: #dcfce7; color: #166534; }
+    .calendar-day-detail { background: #f3f4f6; border-radius: 8px; padding: 12px; margin-top: 12px; }
+    .calendar-day-detail-header { font-weight: 600; color: #4f46e5; margin-bottom: 8px; font-size: 14px; }
+    .calendar-day-detail-items { display: flex; flex-direction: column; gap: 8px; }
+    .calendar-detail-item { background: white; border-radius: 6px; padding: 10px; border-left: 4px solid #4f46e5; cursor: pointer; }
+    .calendar-detail-item:hover { background: #f9fafb; }
+    .calendar-detail-item.complete { border-left-color: #22c55e; }
+    .calendar-detail-item-header { display: flex; justify-content: space-between; align-items: center; }
+    .calendar-detail-item-cuenta { font-weight: 600; color: #1d4ed8; }
+    .calendar-detail-item-envio { font-size: 11px; color: #6b7280; }
+    .calendar-detail-item-stats { font-size: 12px; color: #374151; margin-top: 4px; }
+
+    /* Upload colecta */
+    .colecta-upload { background: #f9fafb; padding: 16px; border-top: 1px solid #e5e7eb; }
+    .colecta-upload.hidden { display: none; }
+    .colecta-upload h3 { font-size: 14px; margin-bottom: 12px; color: #374151; }
+    .colecta-upload-form { display: flex; flex-direction: column; gap: 10px; }
+    .colecta-upload-form label { font-size: 12px; color: #6b7280; }
+    .colecta-upload-form input, .colecta-upload-form select { padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; }
+    .colecta-upload-form input[type="file"] { border-style: dashed; background: white; }
+    .colecta-upload-btn { padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .colecta-upload-btn:disabled { background: #9ca3af; }
+    .toggle-upload-btn { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+    /* Status badges */
+    .colecta-status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+    .colecta-status-badge.en-colecta { background: #dcfce7; color: #16a34a; }
+    .colecta-status-badge.no-colecta { background: #fef2f2; color: #dc2626; }
+    .colecta-status-badge.verificado { background: #dbeafe; color: #1d4ed8; }
+
+    .empty-state { text-align: center; padding: 32px 16px; color: #6b7280; }
+    .empty-state p { margin-bottom: 12px; }
+
+    /* Vista Verificar */
+    .colectas-verificar { padding: 16px; }
+    .colectas-verificar.hidden { display: none; }
+    .verificar-selector { margin-bottom: 16px; }
+    .verificar-selector label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 8px; }
+    .verificar-selector select { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; }
+    .verificar-selector select:focus { outline: none; border-color: #4f46e5; }
+    .verificar-colecta-info { background: #f9fafb; border-radius: 8px; padding: 16px; }
+    .verificar-colecta-info.hidden { display: none; }
+    .verificar-colecta-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .verificar-colecta-cuenta { font-size: 24px; font-weight: 700; color: #4f46e5; }
+    .verificar-colecta-fecha { font-size: 16px; color: #374151; }
+    .verificar-colecta-estado { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+    .verificar-colecta-estado.pending { background: #fef3c7; color: #92400e; }
+    .verificar-colecta-estado.complete { background: #dcfce7; color: #166534; }
+    .verificar-progress { margin: 16px 0; }
+    .verificar-progress-bar { background: #e5e7eb; height: 16px; border-radius: 8px; overflow: hidden; }
+    .verificar-progress-fill { background: linear-gradient(90deg, #4f46e5, #22c55e); height: 100%; transition: width 0.3s; }
+    .verificar-progress-text { text-align: center; margin-top: 8px; font-size: 18px; font-weight: 700; color: #111827; }
+    .verificar-mensaje { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+
+    /* Modal de detalle de colecta */
+    .colecta-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .colecta-modal.hidden { display: none; }
+    .colecta-modal-content { background: white; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+    .colecta-modal-header { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .colecta-modal-header h3 { margin: 0; font-size: 16px; }
+    .colecta-modal-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+    .colecta-modal-info { padding: 16px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    .colecta-modal-info p { margin: 4px 0; font-size: 14px; color: #374151; }
+    .colecta-modal-progress { padding: 12px 16px; background: #f3f4f6; }
+    .colecta-modal-progress-bar { background: #e5e7eb; height: 12px; border-radius: 6px; overflow: hidden; }
+    .colecta-modal-progress-fill { background: #22c55e; height: 100%; transition: width 0.3s; }
+    .colecta-modal-progress-text { text-align: center; margin-top: 8px; font-size: 14px; font-weight: 600; color: #374151; }
+    .colecta-modal-items { flex: 1; overflow-y: auto; padding: 8px; }
+    .colecta-modal-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+    .colecta-modal-item:last-child { border-bottom: none; }
+    .colecta-modal-item.verificado { background: #f0fdf4; }
+    .colecta-modal-item-codigo { font-family: monospace; font-weight: 600; color: #111827; }
+    .colecta-modal-item-cant { background: #fef3c7; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+    .colecta-modal-item-status { font-size: 16px; }
   </style>
 </head>
 <body>
-  <!-- Login Screen -->
-  <div id="loginScreen" class="login-container">
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
-      <h2>Verificador FULL</h2>
-      <div id="loginError" class="login-error hidden"></div>
-      <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
-      <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
-      <button onclick="login()">Ingresar</button>
+      <div class="login-logo">
+        <h1>Verificador FULL</h1>
+        <p>Inicia sesion para continuar</p>
+      </div>
+      <form class="login-form" id="loginForm">
+        <input type="text" class="login-input" id="loginUser" placeholder="Usuario" autocomplete="username" required>
+        <input type="password" class="login-input" id="loginPassword" placeholder="Contrasena" autocomplete="current-password" required>
+        <div class="login-error" id="loginError">Usuario o contrasena incorrectos</div>
+        <button type="submit" class="login-btn" id="loginBtn">Iniciar Sesion</button>
+      </form>
     </div>
   </div>
 
-  <!-- Main App -->
-  <div id="mainApp" class="hidden">
-    <header>
-      <h1>Verificador FULL</h1>
-      <div class="stats" id="statsText">Cargando...</div>
-      <button class="logout-btn" onclick="logout()">Salir</button>
-    </header>
+  <!-- Logout Button -->
+  <button type="button" class="logout-btn hidden" id="logoutBtn">Salir</button>
 
-    <div class="container">
-      <!-- Scanner -->
-      <div class="scanner-section">
-        <h3>Escanear Código ML</h3>
-        <div class="scanner-input">
-          <input type="text" id="codigoInput" placeholder="RRSM05395" autofocus>
-          <button onclick="buscarCodigo()">Buscar</button>
+  <div class="header">
+    <h1>Verificador FULL</h1>
+    <div class="stats-badge" id="statsBadge">Cargando...</div>
+  </div>
+
+  <div class="container">
+    <!-- Panel de Colectas -->
+    <div class="colectas-panel" id="colectasPanel">
+      <div class="colectas-header">
+        <h2>Colectas FULL <span class="colectas-count" id="colectasCount">0</span></h2>
+        <div class="colectas-tabs">
+          <button type="button" class="colectas-tab" data-view="lista">Lista</button>
+          <button type="button" class="colectas-tab" data-view="calendario">Calendario</button>
+          <button type="button" class="colectas-tab active" data-view="verificar">Verificar</button>
         </div>
       </div>
 
-      <!-- Message -->
-      <div id="message" class="message hidden"></div>
+      <!-- Vista Lista -->
+      <div class="colectas-list hidden" id="colectasLista"></div>
 
-      <!-- Items Section -->
-      <div id="itemsSection" class="items-section hidden">
-        <div class="item-header">
-          <h3 id="codigoTitle">-</h3>
-          <span class="item-cuenta" id="cuentaLabel">-</span>
+      <!-- Vista Calendario -->
+      <div class="colectas-calendar hidden" id="colectasCalendario"></div>
+
+      <!-- Vista Verificar -->
+      <div class="colectas-verificar" id="colectasVerificar">
+        <div class="verificar-selector">
+          <label>Seleccioná la colecta a verificar:</label>
+          <select id="colectaActivaSelect">
+            <option value="">-- Elegir colecta --</option>
+          </select>
         </div>
-        <p class="item-producto" id="productoLabel">-</p>
-
-        <div id="itemsList"></div>
-
-        <button class="camera-btn" onclick="openCamera()">
-          <span>📷</span> Verificar con foto
-        </button>
-
-        <div id="visionResult" class="vision-result hidden"></div>
-
-        <div class="actions">
-          <button class="btn-secondary" onclick="limpiar()">Limpiar</button>
-          <button class="btn-primary" id="confirmarBtn" onclick="confirmar()" disabled>
-            Confirmar Verificación
-          </button>
-        </div>
+        <div class="verificar-colecta-info hidden" id="verificarColectaInfo"></div>
       </div>
+
+      <!-- Boton para mostrar formulario -->
+      <button type="button" class="toggle-upload-btn" id="toggleUploadBtn">+ Nueva Colecta</button>
+
+      <!-- Formulario de carga -->
+      <div class="colecta-upload hidden" id="colectaUpload">
+        <h3>Cargar nueva colecta</h3>
+        <form class="colecta-upload-form" id="colectaForm">
+          <label>Cuenta:</label>
+          <select id="colectaCuentaInput">
+            <option value="">Seleccionar cuenta...</option>
+            <option value="Furst">Furst</option>
+            <option value="Tienda">Tienda</option>
+            <option value="Shop">Shop</option>
+            <option value="Mun1">Mun1</option>
+            <option value="Mun2">Mun2</option>
+          </select>
+          <label>Fecha de retiro:</label>
+          <input type="date" id="colectaFechaInput" required>
+          <label>PDF de la colecta FULL:</label>
+          <input type="file" id="colectaPdfInput" accept=".pdf" required>
+          <button type="submit" class="colecta-upload-btn" id="colectaUploadBtn">Cargar colecta</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="scan-section">
+      <div class="scan-input-group">
+        <input type="text" id="codigoInput" class="scan-input" placeholder="Codigo ML...">
+        <button type="button" id="searchBtn" class="scan-btn">Buscar</button>
+      </div>
+      <div class="camera-container" id="cameraContainer">
+        <video id="video" playsinline></video>
+        <button type="button" class="close-camera" id="closeCamera">✕</button>
+      </div>
+    </div>
+
+    <div class="status-message" id="statusMessage"></div>
+
+    <div class="items-section hidden" id="itemsSection">
+      <div class="items-header">
+        <h2>Productos a verificar</h2>
+        <div class="items-meta">
+          <span class="items-cuenta" id="itemsCuenta">-</span>
+          <span id="itemsProducto"></span>
+        </div>
+        <span class="items-count" id="itemsCount">0/0</span>
+      </div>
+      <div id="itemsList"></div>
+      <div id="visionResult" class="vision-result hidden"></div>
+    </div>
+
+    <button type="button" class="reset-btn hidden" id="resetBtn">Nuevo codigo</button>
+  </div>
+
+  <div class="complete-banner" id="completeBanner">✓ Verificacion completa</div>
+  <button type="button" id="cameraBtn" class="camera-btn">Escanear codigo</button>
+
+  <style>
+    .camera-btn.hidden { display: none; }
+    .scan-section.hidden { display: none; }
+    .toggle-upload-btn.hidden { display: none; }
+  </style>
+
+  <!-- Hidden file input for photo verification -->
+  <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+
+  <!-- Modal de detalle de colecta -->
+  <div class="colecta-modal hidden" id="colectaModal">
+    <div class="colecta-modal-content">
+      <div class="colecta-modal-header">
+        <h3 id="modalColectaNombre">Colecta</h3>
+        <button type="button" class="colecta-modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="colecta-modal-info" id="modalColectaInfo"></div>
+      <div class="colecta-modal-progress">
+        <div class="colecta-modal-progress-bar">
+          <div class="colecta-modal-progress-fill" id="modalProgressFill"></div>
+        </div>
+        <div class="colecta-modal-progress-text" id="modalProgressText"></div>
+      </div>
+      <div class="colecta-modal-items" id="modalColectaItems"></div>
     </div>
   </div>
 
-  <!-- Hidden file input for camera -->
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
-
+  <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
   <script>
-    var currentItems = [];
-    var currentCodigo = null;
+    // ============================================
+    // AUTENTICACIÓN
+    // ============================================
+    (function authInit() {
+      var loginOverlay = document.getElementById('loginOverlay');
+      var loginForm = document.getElementById('loginForm');
+      var loginUser = document.getElementById('loginUser');
+      var loginPassword = document.getElementById('loginPassword');
+      var loginError = document.getElementById('loginError');
+      var loginBtn = document.getElementById('loginBtn');
+      var logoutBtn = document.getElementById('logoutBtn');
 
-    // Check auth on load
-    document.addEventListener('DOMContentLoaded', function() {
-      checkAuth();
-      document.getElementById('codigoInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') buscarCodigo();
-      });
-      document.getElementById('loginPass').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') login();
-      });
-      document.getElementById('cameraInput').addEventListener('change', handlePhoto);
-    });
-
-    async function checkAuth() {
-      try {
-        var res = await fetch('/api/auth/check');
-        var data = await res.json();
-        if (data.authenticated) {
-          showApp();
-          loadStats();
-        } else {
-          showLogin();
-        }
-      } catch (e) {
-        showLogin();
+      function checkAuth() {
+        return fetch('/api/auth/check', { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.authenticated) {
+              showApp();
+              return true;
+            } else {
+              showLogin();
+              return false;
+            }
+          })
+          .catch(function() {
+            showLogin();
+            return false;
+          });
       }
-    }
 
-    async function login() {
-      var user = document.getElementById('loginUser').value;
-      var pass = document.getElementById('loginPass').value;
+      function showLogin() {
+        loginOverlay.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        loginUser.focus();
+      }
 
-      try {
-        var res = await fetch('/api/auth/login', {
+      function showApp() {
+        loginOverlay.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        if (typeof initMainApp === 'function') {
+          initMainApp();
+        }
+      }
+
+      loginForm.onsubmit = function(e) {
+        e.preventDefault();
+        loginError.classList.remove('show');
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Ingresando...';
+
+        fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: user, password: pass })
+          credentials: 'include',
+          body: JSON.stringify({
+            username: loginUser.value,
+            password: loginPassword.value
+          })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Iniciar Sesion';
+          if (data.success) {
+            loginPassword.value = '';
+            showApp();
+          } else {
+            loginError.textContent = data.error || 'Error al iniciar sesion';
+            loginError.classList.add('show');
+          }
+        })
+        .catch(function(err) {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Iniciar Sesion';
+          loginError.textContent = 'Error de conexion';
+          loginError.classList.add('show');
         });
-        var data = await res.json();
+      };
 
-        if (data.success) {
-          showApp();
-          loadStats();
-        } else {
-          document.getElementById('loginError').textContent = data.error || 'Error de login';
-          document.getElementById('loginError').classList.remove('hidden');
-        }
-      } catch (e) {
-        document.getElementById('loginError').textContent = 'Error de conexión';
-        document.getElementById('loginError').classList.remove('hidden');
-      }
-    }
+      logoutBtn.onclick = function() {
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+        .then(function() { showLogin(); })
+        .catch(function() { showLogin(); });
+      };
 
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      showLogin();
-    }
+      checkAuth();
+    })();
 
-    function showLogin() {
-      document.getElementById('loginScreen').classList.remove('hidden');
-      document.getElementById('mainApp').classList.add('hidden');
-    }
+    // ============================================
+    // APP PRINCIPAL
+    // ============================================
+    var mainAppInitialized = false;
+    function initMainApp() {
+      if (mainAppInitialized) return;
+      mainAppInitialized = true;
 
-    function showApp() {
-      document.getElementById('loginScreen').classList.add('hidden');
-      document.getElementById('mainApp').classList.remove('hidden');
-      document.getElementById('codigoInput').focus();
-    }
+      var currentItems = [];
+      var unitChecks = {};
+      var codeReader = null;
+      var isScanning = false;
+      var currentCodigo = null;
+      var photoItemIndex = null;
 
-    async function loadStats() {
-      try {
-        var res = await fetch('/api/stats');
-        var data = await res.json();
-        document.getElementById('statsText').textContent = data.totalCodigos + ' códigos cargados';
-      } catch (e) {
-        document.getElementById('statsText').textContent = 'Error cargando stats';
-      }
-    }
+      var codigoInput = document.getElementById('codigoInput');
+      var searchBtn = document.getElementById('searchBtn');
+      var cameraBtn = document.getElementById('cameraBtn');
+      var cameraContainer = document.getElementById('cameraContainer');
+      var closeCameraBtn = document.getElementById('closeCamera');
+      var video = document.getElementById('video');
+      var statusMessage = document.getElementById('statusMessage');
+      var itemsSection = document.getElementById('itemsSection');
+      var itemsList = document.getElementById('itemsList');
+      var itemsCount = document.getElementById('itemsCount');
+      var itemsCuenta = document.getElementById('itemsCuenta');
+      var itemsProducto = document.getElementById('itemsProducto');
+      var completeBanner = document.getElementById('completeBanner');
+      var resetBtn = document.getElementById('resetBtn');
+      var statsBadge = document.getElementById('statsBadge');
+      var visionResult = document.getElementById('visionResult');
+      var photoInput = document.getElementById('photoInput');
 
-    async function buscarCodigo() {
-      var codigo = document.getElementById('codigoInput').value.trim().toUpperCase();
-      if (!codigo) return;
-
-      showMessage('Buscando...', 'info');
-
-      try {
-        var res = await fetch('/api/codigo/' + encodeURIComponent(codigo));
-        var data = await res.json();
-
-        if (res.ok) {
-          hideMessage();
-          currentCodigo = data;
-          currentItems = data.items.map(function(item) {
-            return { ...item, verified: false };
+      // Cargar stats
+      function loadStats() {
+        fetch('/api/stats', { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            statsBadge.textContent = data.totalCodigos + ' codigos';
+          })
+          .catch(function() {
+            statsBadge.textContent = 'Error';
           });
-          renderItems();
-          document.getElementById('itemsSection').classList.remove('hidden');
-          document.getElementById('codigoInput').value = '';
-          document.getElementById('codigoInput').focus();
-        } else {
-          showMessage(data.error || 'Código no encontrado', 'error');
-          document.getElementById('itemsSection').classList.add('hidden');
-        }
-      } catch (e) {
-        showMessage('Error de conexión', 'error');
       }
-    }
+      loadStats();
 
-    function renderItems() {
-      var html = '';
-      currentItems.forEach(function(item, index) {
-        var verifiedClass = item.verified ? 'verified' : '';
-        var verificationClass = item.isVerificationOnly ? 'verification-only' : '';
-        var qty = item.displayQuantity || item.quantity;
+      // ============================================
+      // COLECTAS (múltiples)
+      // ============================================
+      var colectasLista = document.getElementById('colectasLista');
+      var colectasCalendario = document.getElementById('colectasCalendario');
+      var colectasCount = document.getElementById('colectasCount');
+      var colectaUpload = document.getElementById('colectaUpload');
+      var colectaForm = document.getElementById('colectaForm');
+      var colectaFechaInput = document.getElementById('colectaFechaInput');
+      var colectaCuentaInput = document.getElementById('colectaCuentaInput');
+      var colectaPdfInput = document.getElementById('colectaPdfInput');
+      var colectaUploadBtn = document.getElementById('colectaUploadBtn');
+      var toggleUploadBtn = document.getElementById('toggleUploadBtn');
 
-        html += '<div class="item-row ' + verifiedClass + ' ' + verificationClass + '">';
-        html += '<input type="checkbox" class="item-checkbox" ' + (item.verified ? 'checked' : '') + ' onchange="toggleItem(' + index + ')">';
-        html += '<div class="item-info">';
-        html += '<div class="item-sku">' + item.sku + '</div>';
-        html += '<div class="item-description">' + (item.description || '') + '</div>';
+      var colectasData = [];
+      var currentView = 'verificar';
+
+      function loadColectas() {
+        fetch('/api/colectas', { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            colectasData = data.colectas || [];
+            colectasCount.textContent = data.total;
+            renderColectas();
+          })
+          .catch(function(err) {
+            console.error('Error cargando colectas:', err);
+          });
+      }
+      loadColectas();
+
+      var colectasVerificar = document.getElementById('colectasVerificar');
+      var colectaActivaSelect = document.getElementById('colectaActivaSelect');
+      var verificarColectaInfo = document.getElementById('verificarColectaInfo');
+      var colectaActivaId = null;
+
+      function renderColectas() {
+        // Ocultar todas las vistas
+        colectasLista.classList.add('hidden');
+        colectasCalendario.classList.add('hidden');
+        colectasVerificar.classList.add('hidden');
+
+        // Mostrar/ocultar botón escanear y sección de búsqueda según pestaña
+        var scanSection = document.querySelector('.scan-section');
+        if (currentView === 'verificar') {
+          cameraBtn.classList.remove('hidden');
+          scanSection.classList.remove('hidden');
+        } else {
+          cameraBtn.classList.add('hidden');
+          scanSection.classList.add('hidden');
+          // Ocultar también resultados si cambiamos de pestaña
+          itemsSection.classList.add('hidden');
+          resetBtn.classList.add('hidden');
+          completeBanner.classList.remove('show');
+        }
+
+        // Mostrar/ocultar botón Nueva Colecta
+        if (currentView === 'verificar') {
+          toggleUploadBtn.classList.add('hidden');
+          colectaUpload.classList.add('hidden');
+        } else {
+          toggleUploadBtn.classList.remove('hidden');
+        }
+
+        if (currentView === 'lista') {
+          renderListaColectas();
+          colectasLista.classList.remove('hidden');
+        } else if (currentView === 'calendario') {
+          renderCalendarioColectas();
+          colectasCalendario.classList.remove('hidden');
+        } else if (currentView === 'verificar') {
+          renderVerificarColectas();
+          colectasVerificar.classList.remove('hidden');
+        }
+      }
+
+      function renderVerificarColectas() {
+        // Llenar el selector con las colectas
+        var html = '<option value="">-- Elegir colecta --</option>';
+        colectasData.forEach(function(col) {
+          var estado = col.progreso === 100 ? '✓' : col.progreso + '%';
+          var selected = col.id === colectaActivaId ? ' selected' : '';
+          html += '<option value="' + col.id + '"' + selected + '>';
+          html += (col.cuenta || 'Sin cuenta') + ' - ' + formatearFecha(col.fechaColecta) + ' (' + estado + ')';
+          html += '</option>';
+        });
+        colectaActivaSelect.innerHTML = html;
+
+        // Mostrar info de colecta seleccionada
+        if (colectaActivaId) {
+          mostrarInfoColectaActiva();
+        } else {
+          verificarColectaInfo.classList.add('hidden');
+        }
+      }
+
+      function mostrarInfoColectaActiva() {
+        var col = colectasData.find(function(c) { return c.id === colectaActivaId; });
+        if (!col) {
+          verificarColectaInfo.classList.add('hidden');
+          return;
+        }
+
+        var isComplete = col.progreso === 100;
+        var estadoClass = isComplete ? 'complete' : 'pending';
+        var estadoTexto = isComplete ? '✓ Terminada' : '⏳ En proceso';
+
+        var html = '<div class="verificar-colecta-header">';
+        html += '<div>';
+        html += '<div class="verificar-colecta-cuenta">' + (col.cuenta || 'Sin cuenta') + '</div>';
+        html += '<div class="verificar-colecta-fecha">' + formatearFecha(col.fechaColecta) + ' - ' + col.nombre + '</div>';
         html += '</div>';
-        html += '<span class="item-quantity">x' + qty + '</span>';
+        html += '<span class="verificar-colecta-estado ' + estadoClass + '">' + estadoTexto + '</span>';
         html += '</div>';
+
+        html += '<div class="verificar-progress">';
+        html += '<div class="verificar-progress-bar"><div class="verificar-progress-fill" style="width:' + col.progreso + '%"></div></div>';
+        html += '<div class="verificar-progress-text">' + (col.unidadesVerificadas || 0) + ' / ' + col.totalUnidades + ' unidades</div>';
+        html += '</div>';
+
+        if (!isComplete) {
+          html += '<div class="verificar-mensaje">Escaneá o ingresá un código ML para verificar</div>';
+        } else {
+          html += '<div class="verificar-mensaje" style="color:#16a34a">¡Colecta completada!</div>';
+        }
+
+        verificarColectaInfo.innerHTML = html;
+        verificarColectaInfo.classList.remove('hidden');
+      }
+
+      colectaActivaSelect.addEventListener('change', function() {
+        colectaActivaId = this.value || null;
+        mostrarInfoColectaActiva();
+        // Limpiar búsqueda anterior
+        itemsSection.classList.add('hidden');
+        resetBtn.classList.add('hidden');
+        completeBanner.classList.remove('show');
+        codigoInput.value = '';
       });
 
-      document.getElementById('itemsList').innerHTML = html;
-      document.getElementById('codigoTitle').textContent = currentCodigo.codigoML;
-      document.getElementById('cuentaLabel').textContent = currentCodigo.cuenta;
-      document.getElementById('productoLabel').textContent = currentCodigo.producto;
+      function renderListaColectas() {
+        if (colectasData.length === 0) {
+          colectasLista.innerHTML = '<div class="empty-state"><p>No hay colectas activas</p></div>';
+          return;
+        }
 
-      updateConfirmButton();
-    }
+        var html = '';
+        colectasData.forEach(function(col) {
+          html += '<div class="colecta-item" data-id="' + col.id + '">';
+          html += '<div class="colecta-item-header">';
+          html += '<div class="colecta-item-principal">';
+          if (col.cuenta) html += '<span class="colecta-item-cuenta-grande">' + col.cuenta + '</span>';
+          html += '<span class="colecta-item-fecha-grande">' + formatearFecha(col.fechaColecta) + '</span>';
+          html += '</div>';
+          html += '<span class="colecta-item-envio">' + col.nombre + '</span>';
+          html += '</div>';
+          html += '<div class="colecta-item-progress"><div class="colecta-item-progress-bar" style="width:' + col.progreso + '%"></div></div>';
+          html += '<div class="colecta-item-stats">';
+          html += '<span>' + (col.unidadesVerificadas || 0) + '/' + col.totalUnidades + ' unidades (' + col.progreso + '%)</span>';
+          html += '<span>' + col.totalCodigos + ' productos</span>';
+          html += '</div>';
+          html += '<div class="colecta-item-actions">';
+          html += '<button class="colecta-item-btn delete" onclick="eliminarColecta(\'' + col.id + '\')">Eliminar</button>';
+          html += '</div>';
+          html += '</div>';
+        });
+        colectasLista.innerHTML = html;
+      }
 
-    function toggleItem(index) {
-      currentItems[index].verified = !currentItems[index].verified;
-      renderItems();
-    }
+      var calendarioMesActual = new Date();
+      var calendarioColectasPorFecha = {};
+      var calendarioFechaSeleccionada = null;
 
-    function updateConfirmButton() {
-      var allVerified = currentItems.every(function(item) { return item.verified; });
-      document.getElementById('confirmarBtn').disabled = !allVerified;
-    }
+      function renderCalendarioColectas() {
+        fetch('/api/colectas/calendario', { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(porFecha) {
+            calendarioColectasPorFecha = porFecha;
+            renderCalendarioMes();
+          });
+      }
 
-    function openCamera() {
-      document.getElementById('cameraInput').click();
-    }
+      function renderCalendarioMes() {
+        var year = calendarioMesActual.getFullYear();
+        var month = calendarioMesActual.getMonth();
+        var hoy = new Date();
 
-    async function handlePhoto(e) {
-      var file = e.target.files[0];
-      if (!file) return;
+        var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        var diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-      var reader = new FileReader();
-      reader.onload = async function(event) {
-        var base64 = event.target.result;
+        var html = '';
 
-        // Find first unverified item for comparison
-        var itemToVerify = currentItems.find(function(item) {
-          return !item.verified && !item.isVerificationOnly;
+        // Navegación
+        html += '<div class="calendar-nav">';
+        html += '<button class="calendar-nav-btn" onclick="cambiarMesCalendario(-1)">◀</button>';
+        html += '<span class="calendar-month">' + meses[month] + ' ' + year + '</span>';
+        html += '<button class="calendar-nav-btn" onclick="cambiarMesCalendario(1)">▶</button>';
+        html += '</div>';
+
+        // Grilla
+        html += '<div class="calendar-grid">';
+
+        // Días de la semana
+        diasSemana.forEach(function(dia) {
+          html += '<div class="calendar-weekday">' + dia + '</div>';
         });
 
-        showMessage('Analizando imagen con IA...', 'info');
+        // Primer día del mes y cantidad de días
+        var primerDia = new Date(year, month, 1);
+        var ultimoDia = new Date(year, month + 1, 0);
+        var diasEnMes = ultimoDia.getDate();
+        var primerDiaSemana = primerDia.getDay();
 
-        try {
-          var res = await fetch('/api/vision/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image: base64,
-              producto: itemToVerify ? {
-                sku: itemToVerify.sku,
-                descripcion: itemToVerify.description,
-                producto: currentCodigo.producto
-              } : null
-            })
-          });
+        // Días del mes anterior
+        var diasMesAnterior = new Date(year, month, 0).getDate();
+        for (var i = primerDiaSemana - 1; i >= 0; i--) {
+          html += '<div class="calendar-cell other-month"><span class="calendar-cell-day">' + (diasMesAnterior - i) + '</span></div>';
+        }
 
-          var data = await res.json();
-          hideMessage();
+        // Días del mes actual
+        for (var dia = 1; dia <= diasEnMes; dia++) {
+          var fechaStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+          var colectasDelDia = calendarioColectasPorFecha[fechaStr] || [];
+          var esHoy = hoy.getFullYear() === year && hoy.getMonth() === month && hoy.getDate() === dia;
+          var tieneColectas = colectasDelDia.length > 0;
 
-          if (data.success) {
-            showVisionResult(data);
-          } else {
-            showMessage(data.error || 'Error analizando imagen', 'error');
+          var clases = 'calendar-cell';
+          if (esHoy) clases += ' today';
+          if (tieneColectas) clases += ' has-colecta';
+
+          html += '<div class="' + clases + '" onclick="seleccionarDiaCalendario(\'' + fechaStr + '\')">';
+          html += '<span class="calendar-cell-day">' + dia + '</span>';
+
+          if (tieneColectas) {
+            html += '<div class="calendar-cell-colectas">';
+            colectasDelDia.slice(0, 3).forEach(function(col) {
+              var estado = col.progreso === 100 ? 'complete' : 'pending';
+              var estadoTexto = col.progreso === 100 ? '✓' : col.progreso + '%';
+              var cuenta = col.cuenta || '?';
+              html += '<div class="calendar-cell-colecta ' + estado + '">' + cuenta + ' ' + estadoTexto + '</div>';
+            });
+            if (colectasDelDia.length > 3) {
+              html += '<div class="calendar-cell-colecta pending">+' + (colectasDelDia.length - 3) + ' más</div>';
+            }
+            html += '</div>';
           }
-        } catch (err) {
-          showMessage('Error de conexión', 'error');
+
+          html += '</div>';
+        }
+
+        // Días del mes siguiente
+        var celdasRestantes = 42 - (primerDiaSemana + diasEnMes);
+        for (var i = 1; i <= celdasRestantes; i++) {
+          html += '<div class="calendar-cell other-month"><span class="calendar-cell-day">' + i + '</span></div>';
+        }
+
+        html += '</div>';
+
+        // Detalle del día seleccionado
+        if (calendarioFechaSeleccionada && calendarioColectasPorFecha[calendarioFechaSeleccionada]) {
+          var colectas = calendarioColectasPorFecha[calendarioFechaSeleccionada];
+          html += '<div class="calendar-day-detail">';
+          html += '<div class="calendar-day-detail-header">' + formatearFecha(calendarioFechaSeleccionada) + '</div>';
+          html += '<div class="calendar-day-detail-items">';
+          colectas.forEach(function(col) {
+            var isComplete = col.progreso === 100;
+            var estadoTexto = isComplete ? '✓ Terminada' : '⏳ En proceso';
+            html += '<div class="calendar-detail-item' + (isComplete ? ' complete' : '') + '" onclick="abrirModalColecta(\'' + col.id + '\')">';
+            html += '<div class="calendar-detail-item-header">';
+            html += '<span class="calendar-detail-item-cuenta">' + (col.cuenta || 'Sin cuenta') + '</span>';
+            html += '<span class="calendar-detail-item-envio">' + estadoTexto + '</span>';
+            html += '</div>';
+            html += '<div class="calendar-detail-item-stats">' + (col.unidadesVerificadas || 0) + '/' + col.totalUnidades + ' uds (' + col.progreso + '%) - ' + col.nombre + '</div>';
+            html += '</div>';
+          });
+          html += '</div></div>';
+        }
+
+        colectasCalendario.innerHTML = html;
+      }
+
+      window.cambiarMesCalendario = function(delta) {
+        calendarioMesActual.setMonth(calendarioMesActual.getMonth() + delta);
+        renderCalendarioMes();
+      };
+
+      window.seleccionarDiaCalendario = function(fecha) {
+        calendarioFechaSeleccionada = fecha;
+        renderCalendarioMes();
+      };
+
+      function formatearFecha(fechaStr) {
+        var fecha = new Date(fechaStr + 'T00:00:00');
+        var dias = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+        var meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' ' + meses[fecha.getMonth()];
+      }
+
+      // Tabs de vista
+      document.querySelectorAll('.colectas-tab').forEach(function(tab) {
+        tab.onclick = function() {
+          document.querySelectorAll('.colectas-tab').forEach(function(t) { t.classList.remove('active'); });
+          this.classList.add('active');
+          currentView = this.getAttribute('data-view');
+          renderColectas();
+        };
+      });
+
+      // Toggle upload form
+      toggleUploadBtn.onclick = function() {
+        colectaUpload.classList.toggle('hidden');
+        if (!colectaUpload.classList.contains('hidden')) {
+          var tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          colectaFechaInput.value = tomorrow.toISOString().split('T')[0];
         }
       };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
 
-    function showVisionResult(data) {
-      var resultDiv = document.getElementById('visionResult');
-      var isCorrect = data.correcto !== false;
+      // Form submit
+      colectaForm.onsubmit = function(e) {
+        e.preventDefault();
+        var fechaColecta = colectaFechaInput.value;
+        var pdfFile = colectaPdfInput.files[0];
 
-      resultDiv.className = 'vision-result ' + (isCorrect ? 'correct' : 'incorrect');
+        if (!fechaColecta || !pdfFile) {
+          showStatus('Completa fecha y PDF', 'error');
+          return;
+        }
 
-      var html = '<h4>' + (isCorrect ? '✅ Verificado' : '❌ No coincide') + '</h4>';
-      if (data.modeloDetectado) html += '<p><strong>Modelo:</strong> ' + data.modeloDetectado + '</p>';
-      if (data.colorDetectado) html += '<p><strong>Color:</strong> ' + data.colorDetectado + '</p>';
-      if (data.productoDetectado) html += '<p><strong>Detectado:</strong> ' + data.productoDetectado + '</p>';
-      if (data.motivo) html += '<p><strong>Motivo:</strong> ' + data.motivo + '</p>';
-      html += '<p><strong>Confianza:</strong> ' + (data.confianza || 'N/A') + '</p>';
+        colectaUploadBtn.disabled = true;
+        colectaUploadBtn.textContent = 'Procesando...';
+        showStatus('Procesando PDF...', 'loading');
 
-      resultDiv.innerHTML = html;
-      resultDiv.classList.remove('hidden');
+        var formData = new FormData();
+        formData.append('fechaColecta', fechaColecta);
+        formData.append('pdf', pdfFile);
+        if (colectaCuentaInput.value) formData.append('cuenta', colectaCuentaInput.value);
 
-      // Auto-check first unverified item if correct
-      if (isCorrect) {
-        var index = currentItems.findIndex(function(item) {
-          return !item.verified && !item.isVerificationOnly;
+        fetch('/api/colecta/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        })
+        .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
+        .then(function(result) {
+          colectaUploadBtn.disabled = false;
+          colectaUploadBtn.textContent = 'Cargar colecta';
+          if (result.ok) {
+            showStatus(result.data.nombre + ': ' + result.data.totalUnidades + ' unidades', 'success');
+            colectaPdfInput.value = '';
+            colectaCuentaInput.value = '';
+            colectaUpload.classList.add('hidden');
+            loadColectas();
+          } else {
+            showStatus(result.data.error || 'Error cargando colecta', 'error');
+          }
+        })
+        .catch(function(err) {
+          colectaUploadBtn.disabled = false;
+          colectaUploadBtn.textContent = 'Cargar colecta';
+          showStatus('Error de conexion', 'error');
         });
-        if (index >= 0) {
-          currentItems[index].verified = true;
-          renderItems();
+      };
+
+      // Eliminar colecta (global function)
+      window.eliminarColecta = function(colectaId) {
+        if (!confirm('Eliminar esta colecta?')) return;
+        fetch('/api/colecta/' + colectaId, { method: 'DELETE', credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.success) {
+              showStatus(data.mensaje, 'success');
+              loadColectas();
+            }
+          })
+          .catch(function(err) { showStatus('Error eliminando', 'error'); });
+      };
+
+      // Modal de detalle de colecta
+      var colectaModal = document.getElementById('colectaModal');
+      var modalClose = document.getElementById('modalClose');
+      var modalColectaNombre = document.getElementById('modalColectaNombre');
+      var modalColectaInfo = document.getElementById('modalColectaInfo');
+      var modalProgressFill = document.getElementById('modalProgressFill');
+      var modalProgressText = document.getElementById('modalProgressText');
+      var modalColectaItems = document.getElementById('modalColectaItems');
+
+      // Click en colecta para abrir modal
+      colectasLista.addEventListener('click', function(e) {
+        var colectaItem = e.target.closest('.colecta-item');
+        if (colectaItem && !e.target.closest('.colecta-item-btn')) {
+          var colectaId = colectaItem.getAttribute('data-id');
+          abrirModalColecta(colectaId);
+        }
+      });
+
+      // Cerrar modal
+      modalClose.onclick = function() {
+        colectaModal.classList.add('hidden');
+      };
+      colectaModal.onclick = function(e) {
+        if (e.target === colectaModal) {
+          colectaModal.classList.add('hidden');
+        }
+      };
+
+      function abrirModalColecta(colectaId) {
+        fetch('/api/colecta/' + colectaId, { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) {
+              showStatus(data.error, 'error');
+              return;
+            }
+
+            modalColectaNombre.textContent = data.nombre;
+
+            var infoHtml = '<p><strong>Cuenta:</strong> ' + (data.cuenta || 'Sin asignar') + '</p>';
+            infoHtml += '<p><strong>Fecha retiro:</strong> ' + data.fechaColecta + '</p>';
+            infoHtml += '<p><strong>Productos:</strong> ' + data.totalCodigos + '</p>';
+            infoHtml += '<p><strong>Unidades totales:</strong> ' + data.totalUnidades + '</p>';
+            modalColectaInfo.innerHTML = infoHtml;
+
+            // Usar datos del backend (ya calculados)
+            modalProgressFill.style.width = data.progreso + '%';
+            modalProgressText.textContent = data.unidadesVerificadas + '/' + data.totalUnidades + ' unidades verificadas (' + data.progreso + '%)';
+
+            // Renderizar items
+            var items = data.items || [];
+            var itemsHtml = '';
+            items.forEach(function(item) {
+              var verificadoClass = item.verificado ? ' verificado' : '';
+              var statusIcon = item.verificado ? '✅' : '⏳';
+              itemsHtml += '<div class="colecta-modal-item' + verificadoClass + '">';
+              itemsHtml += '<span class="colecta-modal-item-codigo">' + item.codigoML + '</span>';
+              itemsHtml += '<span class="colecta-modal-item-cant">' + item.cantidad + ' uds</span>';
+              itemsHtml += '<span class="colecta-modal-item-status">' + statusIcon + '</span>';
+              itemsHtml += '</div>';
+            });
+            modalColectaItems.innerHTML = itemsHtml;
+
+            colectaModal.classList.remove('hidden');
+          })
+          .catch(function(err) {
+            showStatus('Error cargando detalle', 'error');
+          });
+      }
+
+      // Marcar en la colecta activa seleccionada
+      function marcarVerificadoEnColectaActiva(codigoML) {
+        if (!colectaActivaId) {
+          showStatus('Seleccioná una colecta primero', 'error');
+          return;
+        }
+
+        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigoML), {
+          method: 'POST',
+          credentials: 'include'
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            loadColectas();
+            if (data.yaVerificado) {
+              showStatus('Este código ya estaba verificado', 'loading');
+            }
+          }
+        })
+        .catch(function(err) {
+          console.error('Error marcando verificado:', err);
+        });
+      }
+
+      function showStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = 'status-message show ' + type;
+        if (type === 'success') {
+          setTimeout(hideStatus, 3000);
         }
       }
-    }
 
-    function confirmar() {
-      showMessage('✅ Verificación completada para ' + currentCodigo.codigoML, 'success');
-      limpiar();
-    }
+      function hideStatus() {
+        statusMessage.className = 'status-message';
+      }
 
-    function limpiar() {
-      currentCodigo = null;
-      currentItems = [];
-      document.getElementById('itemsSection').classList.add('hidden');
-      document.getElementById('visionResult').classList.add('hidden');
-      document.getElementById('codigoInput').focus();
-    }
+      function isItemComplete(index) {
+        var item = currentItems[index];
+        var checks = unitChecks[index] || [];
+        for (var i = 0; i < item.quantity; i++) {
+          var check = checks[i];
+          var isChecked = check && (check === true || check.checked === true);
+          if (!isChecked) return false;
+        }
+        return true;
+      }
 
-    function showMessage(text, type) {
-      var msgDiv = document.getElementById('message');
-      msgDiv.textContent = text;
-      msgDiv.className = 'message ' + type;
-      msgDiv.classList.remove('hidden');
-    }
+      function countCompletedItems() {
+        var count = 0;
+        for (var i = 0; i < currentItems.length; i++) {
+          if (isItemComplete(i)) count++;
+        }
+        return count;
+      }
 
-    function hideMessage() {
-      document.getElementById('message').classList.add('hidden');
+      function updateItemsCount() {
+        var total = currentItems.length;
+        var checked = countCompletedItems();
+        itemsCount.textContent = checked + '/' + total;
+        if (checked === total && total > 0) {
+          completeBanner.classList.add('show');
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          // Marcar en la colecta activa
+          if (currentCodigo && currentCodigo.codigoML && colectaActivaId) {
+            marcarVerificadoEnColectaActiva(currentCodigo.codigoML);
+          }
+        } else {
+          completeBanner.classList.remove('show');
+        }
+      }
+
+      function updateCard(index) {
+        var card = document.querySelector('.item-card[data-index="' + index + '"]');
+        if (!card) return;
+        var mainCheckbox = card.querySelector('.item-main-checkbox');
+        var complete = isItemComplete(index);
+        mainCheckbox.checked = complete;
+        card.className = 'item-card' + (complete ? ' checked' : '') + (currentItems[index].isVerificationOnly ? ' verification-only' : '');
+        updateItemsCount();
+      }
+
+      function highlightCard(index) {
+        var card = document.querySelector('.item-card[data-index="' + index + '"]');
+        if (!card) return;
+        card.classList.add('just-scanned');
+        setTimeout(function() {
+          card.classList.remove('just-scanned');
+        }, 2000);
+      }
+
+      function renderItems() {
+        itemsList.innerHTML = '';
+        for (var i = 0; i < currentItems.length; i++) {
+          var item = currentItems[i];
+          unitChecks[i] = [];
+
+          var card = document.createElement('div');
+          card.className = 'item-card' + (item.isVerificationOnly ? ' verification-only' : '');
+          card.setAttribute('data-index', i);
+          card.setAttribute('data-sku', item.sku);
+
+          var mainCheckbox = document.createElement('input');
+          mainCheckbox.type = 'checkbox';
+          mainCheckbox.className = 'item-main-checkbox';
+          mainCheckbox.checked = false;
+
+          var info = document.createElement('div');
+          info.className = 'item-info';
+
+          var descDiv = document.createElement('div');
+          descDiv.className = 'item-description';
+          descDiv.textContent = item.description || item.sku;
+          if (item.isKit) {
+            var badge = document.createElement('span');
+            badge.className = 'item-kit-badge';
+            badge.textContent = 'KIT';
+            descDiv.appendChild(badge);
+          }
+
+          var skuDiv = document.createElement('div');
+          skuDiv.className = 'item-sku';
+          skuDiv.textContent = item.isVerificationOnly ? '⚠️ Verificacion adicional' : 'SKU: ' + item.sku;
+
+          var qtyDiv = document.createElement('div');
+          qtyDiv.className = 'item-quantity';
+          var displayQty = item.displayQuantity !== undefined ? item.displayQuantity : item.quantity;
+          qtyDiv.textContent = 'Cantidad: ' + displayQty;
+
+          var unitsDiv = document.createElement('div');
+          unitsDiv.className = 'unit-checkboxes';
+
+          for (var j = 0; j < item.quantity; j++) {
+            var unitCb = document.createElement('input');
+            unitCb.type = 'checkbox';
+            unitCb.className = 'unit-checkbox';
+            unitCb.setAttribute('data-item', i);
+            unitCb.setAttribute('data-unit', j);
+            unitsDiv.appendChild(unitCb);
+          }
+
+          info.appendChild(descDiv);
+          info.appendChild(skuDiv);
+          info.appendChild(qtyDiv);
+          info.appendChild(unitsDiv);
+          card.appendChild(mainCheckbox);
+          card.appendChild(info);
+
+          // Botón de foto para verificación (solo items normales)
+          if (!item.isVerificationOnly) {
+            var verifyBtn = document.createElement('button');
+            verifyBtn.className = 'verify-photo-btn';
+            verifyBtn.textContent = '📷';
+            verifyBtn.title = 'Verificar con foto';
+            verifyBtn.setAttribute('data-index', i);
+            verifyBtn.onclick = function(e) {
+              e.stopPropagation();
+              var idx = parseInt(this.getAttribute('data-index'));
+              iniciarVerificacionFoto(idx);
+            };
+            card.appendChild(verifyBtn);
+          }
+
+          itemsList.appendChild(card);
+        }
+        updateItemsCount();
+      }
+
+      itemsList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('unit-checkbox')) {
+          var itemIndex = parseInt(e.target.getAttribute('data-item'));
+          var unitIndex = parseInt(e.target.getAttribute('data-unit'));
+          if (!unitChecks[itemIndex]) unitChecks[itemIndex] = [];
+          unitChecks[itemIndex][unitIndex] = e.target.checked ? { checked: true, method: 'manual' } : null;
+          updateCard(itemIndex);
+        }
+      });
+
+      function searchCodigo(codigo) {
+        if (!codigo || codigo.trim() === '') {
+          showStatus('Ingresa un codigo ML', 'error');
+          return;
+        }
+        if (!colectaActivaId) {
+          showStatus('Seleccioná una colecta primero', 'error');
+          return;
+        }
+        codigo = codigo.trim().toUpperCase();
+        showStatus('Buscando...', 'loading');
+        searchBtn.disabled = true;
+
+        fetch('/api/codigo/' + encodeURIComponent(codigo), { credentials: 'include' })
+          .then(function(response) {
+            return response.json().then(function(data) {
+              if (!response.ok) throw new Error(data.error || 'Codigo no encontrado');
+              return data;
+            });
+          })
+          .then(function(data) {
+            currentCodigo = data;
+            currentItems = data.items;
+            unitChecks = {};
+            hideStatus();
+            itemsSection.classList.remove('hidden');
+            resetBtn.classList.remove('hidden');
+            itemsCuenta.textContent = data.cuenta;
+
+            // Mostrar estado de colectas (múltiples)
+            var colectaBadges = '';
+            if (data.colectas && data.colectas.length > 0) {
+              data.colectas.forEach(function(col) {
+                if (col.verificado) {
+                  colectaBadges += '<span class="colecta-status-badge verificado">VERIFICADO</span>';
+                } else {
+                  colectaBadges += '<span class="colecta-status-badge en-colecta">EN COLECTA</span>';
+                }
+              });
+            } else if (colectasData.length > 0) {
+              colectaBadges = '<span class="colecta-status-badge no-colecta">NO EN COLECTAS</span>';
+            }
+
+            itemsProducto.innerHTML = (data.producto ? ' - ' + data.producto.substring(0, 30) + '...' : '') + colectaBadges;
+            renderItems();
+            stopCamera();
+            visionResult.classList.add('hidden');
+          })
+          .catch(function(error) {
+            showStatus(error.message, 'error');
+            itemsSection.classList.add('hidden');
+          })
+          .finally(function() {
+            searchBtn.disabled = false;
+          });
+      }
+
+      // Event listeners
+      searchBtn.onclick = function() {
+        searchCodigo(codigoInput.value);
+      };
+
+      codigoInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchCodigo(codigoInput.value);
+      });
+
+      resetBtn.onclick = function() {
+        currentItems = [];
+        unitChecks = {};
+        currentCodigo = null;
+        itemsSection.classList.add('hidden');
+        resetBtn.classList.add('hidden');
+        completeBanner.classList.remove('show');
+        visionResult.classList.add('hidden');
+        codigoInput.value = '';
+        codigoInput.focus();
+      };
+
+      // ============================================
+      // ESCÁNER DE CÓDIGO DE BARRAS
+      // ============================================
+      cameraBtn.onclick = function() {
+        if (isScanning) {
+          stopCamera();
+        } else {
+          startCamera();
+        }
+      };
+
+      closeCameraBtn.onclick = stopCamera;
+
+      function startCamera() {
+        cameraContainer.classList.add('active');
+        isScanning = true;
+        cameraBtn.textContent = 'Cerrar camara';
+
+        if (!codeReader) {
+          codeReader = new ZXing.BrowserMultiFormatReader();
+        }
+
+        codeReader.decodeFromVideoDevice(null, video, function(result, err) {
+          if (result) {
+            var code = result.getText();
+            if (navigator.vibrate) navigator.vibrate(100);
+            codigoInput.value = code;
+            searchCodigo(code);
+          }
+        }).catch(function(err) {
+          console.error('Error iniciando camara:', err);
+          showStatus('Error al acceder a la camara', 'error');
+          stopCamera();
+        });
+      }
+
+      function stopCamera() {
+        if (codeReader) {
+          codeReader.reset();
+        }
+        cameraContainer.classList.remove('active');
+        isScanning = false;
+        cameraBtn.textContent = 'Escanear codigo';
+      }
+
+      // ============================================
+      // VERIFICACIÓN CON FOTO (Claude Vision)
+      // ============================================
+      function iniciarVerificacionFoto(itemIndex) {
+        photoItemIndex = itemIndex;
+        photoInput.click();
+      }
+
+      photoInput.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file || photoItemIndex === null) return;
+
+        var item = currentItems[photoItemIndex];
+        var reader = new FileReader();
+
+        reader.onload = function(event) {
+          var base64 = event.target.result;
+          showStatus('Analizando imagen con IA...', 'loading');
+
+          fetch('/api/vision/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              image: base64,
+              producto: {
+                sku: item.sku,
+                descripcion: item.description,
+                producto: currentCodigo ? currentCodigo.producto : ''
+              }
+            })
+          })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            hideStatus();
+            mostrarResultadoVision(data, photoItemIndex);
+          })
+          .catch(function(err) {
+            showStatus('Error analizando imagen', 'error');
+          });
+        };
+
+        reader.readAsDataURL(file);
+        e.target.value = '';
+      });
+
+      function mostrarResultadoVision(data, itemIndex) {
+        var isCorrect = data.correcto !== false;
+        visionResult.className = 'vision-result ' + (isCorrect ? 'correct' : 'incorrect');
+
+        var html = '<h4>' + (isCorrect ? '✅ Verificado' : '❌ No coincide') + '</h4>';
+        if (data.modeloDetectado) html += '<p><strong>Modelo:</strong> ' + data.modeloDetectado + '</p>';
+        if (data.colorDetectado) html += '<p><strong>Color:</strong> ' + data.colorDetectado + '</p>';
+        if (data.productoDetectado) html += '<p><strong>Detectado:</strong> ' + data.productoDetectado + '</p>';
+        if (data.motivo) html += '<p><strong>Motivo:</strong> ' + data.motivo + '</p>';
+        html += '<p><strong>Confianza:</strong> ' + (data.confianza || 'N/A') + '</p>';
+
+        visionResult.innerHTML = html;
+        visionResult.classList.remove('hidden');
+
+        // Auto-marcar si es correcto
+        if (isCorrect && itemIndex !== null) {
+          var item = currentItems[itemIndex];
+          if (!unitChecks[itemIndex]) unitChecks[itemIndex] = [];
+          // Marcar primera unidad no marcada
+          for (var i = 0; i < item.quantity; i++) {
+            if (!unitChecks[itemIndex][i]) {
+              unitChecks[itemIndex][i] = { checked: true, method: 'photo' };
+              var checkbox = document.querySelector('.unit-checkbox[data-item="' + itemIndex + '"][data-unit="' + i + '"]');
+              if (checkbox) checkbox.checked = true;
+              break;
+            }
+          }
+          updateCard(itemIndex);
+          highlightCard(itemIndex);
+        }
+
+        photoItemIndex = null;
+      }
     }
   </script>
 </body>
