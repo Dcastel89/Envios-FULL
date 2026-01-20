@@ -309,6 +309,34 @@ function parseSKU(sku) {
 // FUNCIONES DE COLECTA
 // ============================================
 
+// Buscar combinación de N números que sumen el total (backtracking)
+function buscarCombinacion(cantidades, n, objetivo) {
+  var resultado = null;
+
+  function backtrack(inicio, seleccionados, sumaActual) {
+    if (resultado) return; // Ya encontramos una solución
+
+    if (seleccionados.length === n) {
+      if (sumaActual === objetivo) {
+        resultado = seleccionados.slice();
+      }
+      return;
+    }
+
+    // Podar: si no hay suficientes elementos restantes
+    if (cantidades.length - inicio < n - seleccionados.length) return;
+
+    for (var i = inicio; i < cantidades.length && !resultado; i++) {
+      seleccionados.push(cantidades[i]);
+      backtrack(i + 1, seleccionados, sumaActual + cantidades[i]);
+      seleccionados.pop();
+    }
+  }
+
+  backtrack(0, [], 0);
+  return resultado;
+}
+
 // Parsear PDF de colecta FULL (extrae códigos ML y cantidades)
 async function parseColectaPDF(pdfBuffer) {
   var data = await pdfParse(pdfBuffer);
@@ -342,49 +370,119 @@ async function parseColectaPDF(pdfBuffer) {
     codigosOrdenados.push(match[1].toUpperCase());
   }
 
-  // Extraer todas las cantidades (números solos de 1-3 dígitos en líneas propias)
-  // El PDF de MeLi tiene las cantidades en la columna UNIDADES, que se extraen como números sueltos
+  // =====================================================
+  // ESTRATEGIA MEJORADA: Extraer cantidades del formato tabular
+  // =====================================================
+
   var lines = text.split('\n');
   var cantidades = [];
+  var cantidadesConPosicion = []; // Guardar posición para debug
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].trim();
-    // Solo números de 1-3 dígitos, solos en la línea
-    // Ignorar líneas que son parte de dimensiones (ej: "14,5 X 2,5" o "20 X 5")
+
+    // Ignorar líneas que son parte del encabezado de tabla
+    if (line.includes('PRODUCTO') && line.includes('UNIDADES')) continue;
+    if (line.includes('IDENTIFICACIÓN') || line.includes('INSTRUCCIONES')) continue;
+
+    // Buscar números solos de 1-3 dígitos en línea propia
     if (/^\d{1,3}$/.test(line)) {
       var num = parseInt(line, 10);
-      // Ignorar 0 y números muy grandes que podrían ser otra cosa
       if (num > 0 && num < 500) {
         cantidades.push(num);
+        cantidadesConPosicion.push({ num: num, line: i, context: 'solo' });
+      }
+    }
+
+    // Buscar números al inicio de línea seguidos de bullet point (ej: "2 • La fecha...")
+    var matchBullet = line.match(/^(\d{1,3})\s*•/);
+    if (matchBullet) {
+      var numBullet = parseInt(matchBullet[1], 10);
+      if (numBullet > 0 && numBullet < 500) {
+        cantidades.push(numBullet);
+        cantidadesConPosicion.push({ num: numBullet, line: i, context: 'bullet' });
+      }
+    }
+
+    // Buscar patrón "obligatorio\nNUMERO" o "obligatorio NUMBER"
+    if (line === 'obligatorio' && i + 1 < lines.length) {
+      var nextLine = lines[i + 1].trim();
+      var matchNext = nextLine.match(/^(\d{1,3})(?:\s|$)/);
+      if (matchNext) {
+        var numObl = parseInt(matchNext[1], 10);
+        if (numObl > 0 && numObl < 500 && !cantidades.includes(numObl) || cantidades[cantidades.length - 1] !== numObl) {
+          // Solo agregar si no es duplicado del anterior
+        }
       }
     }
   }
 
-  console.log('Códigos encontrados: ' + codigosOrdenados.length);
-  console.log('Cantidades encontradas: ' + cantidades.length);
-  console.log('Cantidades: ' + cantidades.join(', '));
+  console.log('Códigos ML encontrados: ' + codigosOrdenados.length);
+  console.log('Cantidades extraídas: ' + cantidades.length);
+  console.log('Cantidades: ' + cantidades.slice(0, 50).join(', ') + (cantidades.length > 50 ? '...' : ''));
 
-  // Asociar códigos con cantidades en orden
-  // Si hay más cantidades que códigos, las cantidades extra son de encabezados de página (ignorar)
-  // Filtramos las cantidades que coinciden con el número de códigos
+  // =====================================================
+  // ESTRATEGIA DE MATCHING
+  // =====================================================
 
-  // Estrategia: buscar la secuencia de cantidades que sume el total declarado
   var cantidadesValidas = [];
-  if (totalUnidadesDeclaradas > 0 && codigosOrdenados.length > 0) {
-    // Intentar encontrar la subsecuencia correcta
-    for (var start = 0; start <= cantidades.length - codigosOrdenados.length; start++) {
-      var subset = cantidades.slice(start, start + codigosOrdenados.length);
+  var numCodigos = codigosOrdenados.length;
+
+  if (totalUnidadesDeclaradas > 0 && numCodigos > 0) {
+
+    // Estrategia 1: Buscar secuencia contigua que sume exactamente
+    for (var start = 0; start <= cantidades.length - numCodigos; start++) {
+      var subset = cantidades.slice(start, start + numCodigos);
       var suma = subset.reduce(function(a, b) { return a + b; }, 0);
       if (suma === totalUnidadesDeclaradas) {
         cantidadesValidas = subset;
+        console.log('✓ Secuencia contigua encontrada en posición ' + start);
         break;
+      }
+    }
+
+    // Estrategia 2: Filtrar cantidades sospechosas y buscar de nuevo
+    if (cantidadesValidas.length === 0) {
+      // Filtrar números que probablemente no sean cantidades (ej: 33 aparece como total de productos)
+      var cantidadesFiltradas = cantidades.filter(function(c) {
+        return c !== totalProductos; // Excluir el número de productos
+      });
+
+      for (var start = 0; start <= cantidadesFiltradas.length - numCodigos; start++) {
+        var subset = cantidadesFiltradas.slice(start, start + numCodigos);
+        var suma = subset.reduce(function(a, b) { return a + b; }, 0);
+        if (suma === totalUnidadesDeclaradas) {
+          cantidadesValidas = subset;
+          console.log('✓ Secuencia encontrada después de filtrar (pos ' + start + ')');
+          break;
+        }
+      }
+    }
+
+    // Estrategia 3: Backtracking para encontrar N números que sumen el total
+    if (cantidadesValidas.length === 0 && cantidades.length >= numCodigos) {
+      console.log('Intentando backtracking...');
+      var encontrada = buscarCombinacion(cantidades, numCodigos, totalUnidadesDeclaradas);
+      if (encontrada) {
+        cantidadesValidas = encontrada;
+        console.log('✓ Combinación válida encontrada con backtracking');
+      }
+    }
+
+    // Estrategia 4: Si hay exactamente la cantidad correcta de números, usarlos
+    if (cantidadesValidas.length === 0 && cantidades.length === numCodigos) {
+      var suma = cantidades.reduce(function(a, b) { return a + b; }, 0);
+      if (suma === totalUnidadesDeclaradas) {
+        cantidadesValidas = cantidades;
+        console.log('✓ Usando todas las cantidades (coinciden exactamente)');
       }
     }
   }
 
-  // Si no encontramos la secuencia exacta, usar las primeras N cantidades
-  if (cantidadesValidas.length === 0 && cantidades.length >= codigosOrdenados.length) {
-    cantidadesValidas = cantidades.slice(0, codigosOrdenados.length);
+  // Fallback: usar las primeras N cantidades
+  if (cantidadesValidas.length === 0 && cantidades.length >= numCodigos) {
+    cantidadesValidas = cantidades.slice(0, numCodigos);
+    console.log('⚠ Fallback: usando primeras ' + numCodigos + ' cantidades');
   }
 
   // Crear items asociando código con cantidad
@@ -402,7 +500,7 @@ async function parseColectaPDF(pdfBuffer) {
 
   console.log('PDF parseado - Envío: ' + envioId + ', Productos: ' + Object.keys(items).length + ', Unidades: ' + totalUnits + ' (declaradas: ' + totalUnidadesDeclaradas + ')');
 
-  // Validación: verificar que las unidades extraídas coincidan con las declaradas
+  // Validación
   var validacion = {
     ok: true,
     error: null
