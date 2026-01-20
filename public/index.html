@@ -1059,7 +1059,7 @@
       var celebrationText = document.getElementById('celebrationText');
       var celebrationSubtext = document.getElementById('celebrationSubtext');
       var confettiContainer = document.getElementById('confettiContainer');
-      var lastCelebratedColectaId = null; // Para evitar celebrar la misma colecta múltiples veces
+      var celebratedColectas = {}; // Registro de colectas ya celebradas (solo una vez por colecta)
 
       function createConfetti() {
         var colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -1183,18 +1183,13 @@
             // Recargar items si hay colecta activa
             if (colectaActivaId) {
               cargarItemsColectaActiva();
-              // Verificar si la colecta activa llegó al 100%
+              // Verificar si la colecta activa llegó al 100% por primera vez
               var colectaActiva = colectasData.find(function(c) { return c.id === colectaActivaId; });
-              if (colectaActiva) {
-                if (colectaActiva.progreso === 100 && lastCelebratedColectaId !== colectaActivaId) {
-                  // Colecta llegó al 100%, celebrar!
-                  lastCelebratedColectaId = colectaActivaId;
-                  var nombreColecta = colectaActiva.cuenta || colectaActiva.nombre || '';
-                  showCelebration(nombreColecta);
-                } else if (colectaActiva.progreso < 100 && lastCelebratedColectaId === colectaActivaId) {
-                  // Colecta bajó del 100%, resetear para poder celebrar de nuevo si vuelve a completarse
-                  lastCelebratedColectaId = null;
-                }
+              if (colectaActiva && colectaActiva.progreso === 100 && !celebratedColectas[colectaActivaId]) {
+                // Colecta llegó al 100% por primera vez, celebrar!
+                celebratedColectas[colectaActivaId] = true;
+                var nombreColecta = colectaActiva.cuenta || colectaActiva.nombre || '';
+                showCelebration(nombreColecta);
               }
             }
           })
@@ -1337,9 +1332,7 @@
         // Si la colecta seleccionada ya está al 100%, marcarla como celebrada para no celebrar al seleccionar
         var colectaSeleccionada = colectasData.find(function(c) { return c.id === colectaActivaId; });
         if (colectaSeleccionada && colectaSeleccionada.progreso === 100) {
-          lastCelebratedColectaId = colectaActivaId;
-        } else {
-          lastCelebratedColectaId = null;
+          celebratedColectas[colectaActivaId] = true;
         }
         mostrarInfoColectaActiva();
         // Limpiar búsqueda anterior
