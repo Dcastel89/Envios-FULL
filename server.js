@@ -135,10 +135,15 @@ var sheets = null;
 var SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+  // Limpiar la private key: quitar comillas y convertir \n literales a saltos de línea
+  var privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  privateKey = privateKey.replace(/^["']|["']$/g, ''); // Quitar comillas al inicio/fin
+  privateKey = privateKey.replace(/\\n/g, '\n'); // Convertir \n literal a salto de línea
+
   var auth = new google.auth.JWT(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     null,
-    process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    privateKey,
     ['https://www.googleapis.com/auth/spreadsheets']
   );
   sheets = google.sheets({ version: 'v4', auth: auth });
