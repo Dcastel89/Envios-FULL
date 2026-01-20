@@ -230,6 +230,38 @@
     .colecta-modal-item-codigo { font-family: monospace; font-weight: 600; color: #111827; }
     .colecta-modal-item-cant { background: #fef3c7; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
     .colecta-modal-item-status { font-size: 16px; }
+
+    /* Sección Transferencia Stock - Solo Web */
+    .transfer-section { background: white; border-radius: 12px; padding: 20px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 2px solid #8b5cf6; }
+    .transfer-section.hidden { display: none; }
+    .transfer-section h2 { font-size: 16px; font-weight: 600; color: #8b5cf6; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .transfer-section h2::before { content: '💻'; }
+    .transfer-web-only { font-size: 10px; background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+    .transfer-steps { display: flex; flex-direction: column; gap: 16px; }
+    .transfer-step { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+    .transfer-step-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .transfer-step-num { width: 24px; height: 24px; background: #8b5cf6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+    .transfer-step-title { font-weight: 600; color: #374151; }
+    .transfer-step input[type="file"] { width: 100%; font-size: 14px; }
+    .transfer-step-status { margin-top: 8px; font-size: 12px; color: #059669; display: none; }
+    .transfer-step-status.show { display: block; }
+    .transfer-step-status.error { color: #dc2626; }
+    .transfer-btn { width: 100%; padding: 14px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .transfer-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .transfer-btn:hover:not(:disabled) { background: #7c3aed; }
+    .transfer-results { margin-top: 16px; }
+    .transfer-result-box { padding: 12px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
+    .transfer-result-box.success { background: #dcfce7; border: 1px solid #86efac; }
+    .transfer-result-box.error { background: #fee2e2; border: 1px solid #fecaca; }
+    .transfer-result-box.warning { background: #fef3c7; border: 1px solid #fde68a; }
+    .transfer-result-box h4 { margin-bottom: 8px; font-size: 14px; }
+    .transfer-result-box ul { margin: 0; padding-left: 20px; max-height: 150px; overflow-y: auto; }
+    .transfer-result-box li { margin: 4px 0; }
+    .transfer-download-btn { width: 100%; padding: 12px; background: #059669; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+    .transfer-download-btn:hover { background: #047857; }
+    .transfer-validation { padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 12px; }
+    .transfer-validation.ok { background: #dcfce7; color: #166534; }
+    .transfer-validation.error { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
@@ -338,6 +370,53 @@
     </div>
 
     <button type="button" class="reset-btn hidden" id="resetBtn">Nuevo codigo</button>
+
+    <!-- Sección Transferencia Stock - Solo visible en navegador, no en PWA -->
+    <div class="transfer-section hidden" id="transferSection">
+      <h2>Transferencia de Stock <span class="transfer-web-only">Solo Web</span></h2>
+      <div class="transfer-steps">
+        <div class="transfer-step">
+          <div class="transfer-step-header">
+            <span class="transfer-step-num">1</span>
+            <span class="transfer-step-title">PDF del Envío FULL</span>
+          </div>
+          <input type="file" id="transferPdfInput" accept=".pdf">
+          <div class="transfer-step-status" id="transferPdfStatus"></div>
+          <div class="transfer-validation hidden" id="transferPdfValidation"></div>
+        </div>
+
+        <div class="transfer-step">
+          <div class="transfer-step-header">
+            <span class="transfer-step-num">2</span>
+            <span class="transfer-step-title">Excel de Stock (ERP)</span>
+          </div>
+          <input type="file" id="transferStockInput" accept=".xlsx,.xls,.csv">
+          <div class="transfer-step-status" id="transferStockStatus"></div>
+        </div>
+
+        <button type="button" class="transfer-btn" id="transferProcessBtn" disabled>
+          Procesar Transferencia (Dep1 → Dep2)
+        </button>
+
+        <div class="transfer-results hidden" id="transferResults">
+          <div class="transfer-result-box success hidden" id="transferSuccess">
+            <h4>✓ Transferencias exitosas</h4>
+            <ul id="transferSuccessList"></ul>
+          </div>
+          <div class="transfer-result-box error hidden" id="transferErrors">
+            <h4>✗ Stock insuficiente</h4>
+            <ul id="transferErrorsList"></ul>
+          </div>
+          <div class="transfer-result-box warning hidden" id="transferNotFound">
+            <h4>⚠ SKUs no encontrados</h4>
+            <ul id="transferNotFoundList"></ul>
+          </div>
+          <button type="button" class="transfer-download-btn hidden" id="transferDownloadBtn">
+            ⬇ Descargar Stock Actualizado (.xlsx)
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="complete-banner" id="completeBanner">✓ Verificacion completa</div>
@@ -371,6 +450,7 @@
   </div>
 
   <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     // ============================================
     // AUTENTICACIÓN
@@ -1335,6 +1415,358 @@
         photoItemIndex = null;
       }
     }
+  </script>
+
+  <!-- Transferencia de Stock - Solo Web -->
+  <script>
+  (function transferInit() {
+    // Detectar si es PWA instalada
+    var isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    var transferSection = document.getElementById('transferSection');
+    if (isPWA || !transferSection) {
+      // Ocultar en PWA
+      if (transferSection) transferSection.classList.add('hidden');
+      return;
+    }
+
+    // Mostrar sección en navegador
+    transferSection.classList.remove('hidden');
+
+    // Estado
+    var shipmentData = [];
+    var stockData = [];
+    var stockHeaders = [];
+    var transferResults = null;
+    var pdfTotals = null;
+
+    // Elementos
+    var transferPdfInput = document.getElementById('transferPdfInput');
+    var transferStockInput = document.getElementById('transferStockInput');
+    var transferPdfStatus = document.getElementById('transferPdfStatus');
+    var transferStockStatus = document.getElementById('transferStockStatus');
+    var transferPdfValidation = document.getElementById('transferPdfValidation');
+    var transferProcessBtn = document.getElementById('transferProcessBtn');
+    var transferResultsDiv = document.getElementById('transferResults');
+    var transferSuccess = document.getElementById('transferSuccess');
+    var transferErrors = document.getElementById('transferErrors');
+    var transferNotFound = document.getElementById('transferNotFound');
+    var transferSuccessList = document.getElementById('transferSuccessList');
+    var transferErrorsList = document.getElementById('transferErrorsList');
+    var transferNotFoundList = document.getElementById('transferNotFoundList');
+    var transferDownloadBtn = document.getElementById('transferDownloadBtn');
+
+    // Parsear SKU: manejar "/" separadores y (n) multiplicadores
+    function parseSkuString(skuStr, baseQty) {
+      if (!skuStr) return [];
+      var segments = skuStr.split('/').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+      var skuMap = {};
+
+      for (var i = 0; i < segments.length; i++) {
+        var seg = segments[i];
+        if (seg.match(/^5A/i)) continue;
+
+        var cleanSeg = seg.replace(/\s+/g, '');
+        var match = cleanSeg.match(/^(.+?)\((\d+)\)$/);
+        var sku, multiplier;
+
+        if (match) {
+          sku = match[1].trim();
+          multiplier = parseInt(match[2], 10);
+        } else {
+          sku = cleanSeg;
+          multiplier = 1;
+        }
+
+        if (sku.match(/^5A/i)) continue;
+
+        if (!skuMap[sku]) {
+          skuMap[sku] = baseQty * multiplier;
+        }
+      }
+
+      return Object.keys(skuMap).map(function(sku) {
+        return { sku: sku, qty: skuMap[sku] };
+      });
+    }
+
+    // Cargar PDF usando nuestro backend
+    transferPdfInput.addEventListener('change', async function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+
+      transferPdfStatus.textContent = 'Procesando PDF...';
+      transferPdfStatus.classList.remove('error');
+      transferPdfStatus.classList.add('show');
+      transferPdfValidation.classList.add('hidden');
+
+      var formData = new FormData();
+      formData.append('pdf', file);
+
+      try {
+        var response = await fetch('/api/colecta/debug-pdf', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        var data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Error procesando PDF');
+        }
+
+        // Convertir items a formato shipmentData
+        shipmentData = data.items.map(function(item) {
+          return { rawSku: item.codigo, qty: item.cantidad };
+        });
+
+        pdfTotals = {
+          productos: data.productosDeclarados,
+          unidades: data.unidadesDeclaradas
+        };
+
+        var extractedUnits = shipmentData.reduce(function(sum, item) { return sum + item.qty; }, 0);
+
+        transferPdfStatus.textContent = '✓ ' + shipmentData.length + ' productos, ' + extractedUnits + ' unidades';
+        transferPdfStatus.classList.remove('error');
+
+        // Mostrar validación
+        if (data.validacion.ok) {
+          transferPdfValidation.className = 'transfer-validation ok';
+          transferPdfValidation.textContent = '✓ Validación OK - coincide con totales del PDF';
+        } else {
+          transferPdfValidation.className = 'transfer-validation error';
+          transferPdfValidation.textContent = '✗ ' + data.validacion.error;
+        }
+        transferPdfValidation.classList.remove('hidden');
+
+        updateProcessButton();
+      } catch (err) {
+        transferPdfStatus.textContent = '✗ ' + err.message;
+        transferPdfStatus.classList.add('error');
+        shipmentData = [];
+        updateProcessButton();
+      }
+    });
+
+    // Cargar Excel de stock
+    transferStockInput.addEventListener('change', async function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+
+      transferStockStatus.textContent = 'Leyendo archivo...';
+      transferStockStatus.classList.remove('error');
+      transferStockStatus.classList.add('show');
+
+      try {
+        var ext = file.name.split('.').pop().toLowerCase();
+
+        if (ext === 'csv') {
+          var text = await file.text();
+          var lines = text.split('\n');
+          var headers = lines[0].split(',').map(function(h) { return h.trim().replace(/^"|"$/g, ''); });
+          stockHeaders = headers;
+          stockData = [];
+
+          for (var i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            var values = lines[i].split(',').map(function(v) { return v.trim().replace(/^"|"$/g, ''); });
+            var row = {};
+            for (var j = 0; j < headers.length; j++) {
+              row[headers[j]] = values[j] || '';
+            }
+            if (row.sku || row.sku_variante) {
+              stockData.push(row);
+            }
+          }
+        } else if (typeof XLSX !== 'undefined') {
+          var buffer = await file.arrayBuffer();
+          var wb = XLSX.read(buffer, { type: 'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var data = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+
+          if (data.length > 0) {
+            stockHeaders = Object.keys(data[0]);
+            stockData = data.filter(function(row) {
+              return Object.keys(row).some(function(key) {
+                return key.toLowerCase().includes('sku') && row[key] && row[key].toString().trim() !== '';
+              });
+            });
+          }
+        }
+
+        transferStockStatus.textContent = '✓ ' + stockData.length + ' productos en stock';
+        transferStockStatus.classList.remove('error');
+        updateProcessButton();
+      } catch (err) {
+        transferStockStatus.textContent = '✗ Error: ' + err.message;
+        transferStockStatus.classList.add('error');
+        stockData = [];
+        updateProcessButton();
+      }
+    });
+
+    function updateProcessButton() {
+      transferProcessBtn.disabled = !(shipmentData.length > 0 && stockData.length > 0);
+    }
+
+    // Buscar fila en stock por SKU
+    function findStockRow(sku, data) {
+      var skuLower = sku.toLowerCase().trim();
+
+      var idx = data.findIndex(function(row) {
+        return row.sku_variante && row.sku_variante.toString().trim().toLowerCase() === skuLower;
+      });
+
+      if (idx === -1) {
+        idx = data.findIndex(function(row) {
+          return row.sku && row.sku.toString().trim().toLowerCase() === skuLower;
+        });
+      }
+
+      if (idx === -1) {
+        idx = data.findIndex(function(row) {
+          var variante = row.sku_variante ? row.sku_variante.toString().trim().toLowerCase() : '';
+          return variante.includes(skuLower) || skuLower.includes(variante);
+        });
+      }
+
+      return idx;
+    }
+
+    // Procesar transferencia
+    transferProcessBtn.addEventListener('click', function() {
+      if (shipmentData.length === 0 || stockData.length === 0) return;
+
+      var updatedStock = JSON.parse(JSON.stringify(stockData));
+      var log = [];
+      var errors = [];
+      var notFound = [];
+
+      for (var i = 0; i < shipmentData.length; i++) {
+        var item = shipmentData[i];
+        var parsedSkus = parseSkuString(item.rawSku, item.qty);
+
+        for (var j = 0; j < parsedSkus.length; j++) {
+          var parsed = parsedSkus[j];
+          var sku = parsed.sku;
+          var qty = parsed.qty;
+
+          var rowIdx = findStockRow(sku, updatedStock);
+
+          if (rowIdx === -1) {
+            notFound.push({ sku: sku, qty: qty, rawSku: item.rawSku });
+            continue;
+          }
+
+          var row = updatedStock[rowIdx];
+          var currentStock = parseInt(row.deposito_cantidad1, 10) || 0;
+
+          if (currentStock < qty) {
+            errors.push({ sku: sku, requested: qty, available: currentStock });
+            continue;
+          }
+
+          var currentDep2 = parseInt(row.deposito_cantidad2, 10) || 0;
+
+          row.deposito_cantidad1 = currentStock - qty;
+          row.deposito_cantidad2 = currentDep2 + qty;
+
+          log.push({
+            sku: sku,
+            qty: qty,
+            dep1Before: currentStock,
+            dep1After: row.deposito_cantidad1,
+            dep2Before: currentDep2,
+            dep2After: row.deposito_cantidad2
+          });
+        }
+      }
+
+      transferResults = { updatedStock: updatedStock, log: log, errors: errors, notFound: notFound };
+      showResults();
+    });
+
+    function showResults() {
+      if (!transferResults) return;
+
+      transferResultsDiv.classList.remove('hidden');
+
+      // Exitosos
+      if (transferResults.log.length > 0) {
+        transferSuccess.classList.remove('hidden');
+        transferSuccessList.innerHTML = transferResults.log.map(function(l) {
+          return '<li><strong>' + l.sku + '</strong>: ' + l.qty + ' uds (Dep1: ' + l.dep1Before + '→' + l.dep1After + ', Dep2: ' + l.dep2Before + '→' + l.dep2After + ')</li>';
+        }).join('');
+      } else {
+        transferSuccess.classList.add('hidden');
+      }
+
+      // Errores stock
+      if (transferResults.errors.length > 0) {
+        transferErrors.classList.remove('hidden');
+        transferErrorsList.innerHTML = transferResults.errors.map(function(e) {
+          return '<li><strong>' + e.sku + '</strong>: necesita ' + e.requested + ', tiene ' + e.available + '</li>';
+        }).join('');
+      } else {
+        transferErrors.classList.add('hidden');
+      }
+
+      // No encontrados
+      if (transferResults.notFound.length > 0) {
+        transferNotFound.classList.remove('hidden');
+        transferNotFoundList.innerHTML = transferResults.notFound.map(function(n) {
+          return '<li><strong>' + n.sku + '</strong> (cant: ' + n.qty + ')</li>';
+        }).join('');
+      } else {
+        transferNotFound.classList.add('hidden');
+      }
+
+      // Mostrar botón descarga si hay cambios
+      if (transferResults.log.length > 0) {
+        transferDownloadBtn.classList.remove('hidden');
+      } else {
+        transferDownloadBtn.classList.add('hidden');
+      }
+    }
+
+    // Descargar Excel actualizado
+    transferDownloadBtn.addEventListener('click', function() {
+      if (!transferResults || typeof XLSX === 'undefined') return;
+
+      var wb = XLSX.utils.book_new();
+      var headers = stockHeaders.length > 0 ? stockHeaders : Object.keys(transferResults.updatedStock[0] || {});
+
+      // Filtrar solo filas modificadas
+      var modifiedSkus = {};
+      transferResults.log.forEach(function(l) {
+        modifiedSkus[l.sku.toLowerCase().trim()] = true;
+      });
+
+      var modifiedRows = transferResults.updatedStock.filter(function(row) {
+        var sku = row.sku ? row.sku.toString().trim().toLowerCase() : '';
+        var variante = row.sku_variante ? row.sku_variante.toString().trim().toLowerCase() : '';
+
+        for (var modSku in modifiedSkus) {
+          if (sku === modSku || variante === modSku) return true;
+          if (variante && (variante.includes(modSku) || modSku.includes(variante))) return true;
+        }
+        return false;
+      });
+
+      var wsData = [headers];
+      modifiedRows.forEach(function(row) {
+        var rowData = headers.map(function(h) { return row[h] !== undefined ? row[h] : ''; });
+        wsData.push(rowData);
+      });
+
+      var ws = XLSX.utils.aoa_to_sheet(wsData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Stock Modificado');
+
+      XLSX.writeFile(wb, 'stock_actualizado.xlsx');
+    });
+  })();
   </script>
 
   <!-- Service Worker Registration -->
