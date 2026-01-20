@@ -455,16 +455,42 @@ async function parseColectaPDF(pdfBuffer) {
 
   console.log('Códigos ML encontrados: ' + codigosOrdenados.length);
   console.log('Cantidades extraídas: ' + cantidades.length);
+  console.log('Suma de cantidades: ' + cantidades.reduce(function(a,b){return a+b;}, 0));
   if (cantidades.length <= 60) {
     console.log('Cantidades: ' + cantidades.join(', '));
   }
 
-  console.log('Códigos ML encontrados: ' + codigosOrdenados.length);
-  console.log('Cantidades extraídas: ' + cantidades.length);
-  console.log('Cantidades: ' + cantidades.slice(0, 50).join(', ') + (cantidades.length > 50 ? '...' : ''));
+  // =====================================================
+  // VALIDACIÓN TEMPRANA - Fallar rápido si no hay datos
+  // =====================================================
+
+  if (codigosOrdenados.length === 0) {
+    return {
+      items: {},
+      totalItems: 0,
+      totalUnits: 0,
+      envioId: envioId,
+      totalDeclarado: { productos: totalProductos, unidades: totalUnidadesDeclaradas },
+      validacion: { ok: false, error: 'No se encontraron códigos ML en el PDF' }
+    };
+  }
+
+  if (cantidades.length === 0) {
+    return {
+      items: {},
+      totalItems: 0,
+      totalUnits: 0,
+      envioId: envioId,
+      totalDeclarado: { productos: totalProductos, unidades: totalUnidadesDeclaradas },
+      validacion: {
+        ok: false,
+        error: 'No se pudieron extraer las cantidades del PDF. El formato puede ser diferente al esperado.'
+      }
+    };
+  }
 
   // =====================================================
-  // ESTRATEGIA DE MATCHING
+  // ESTRATEGIA DE MATCHING - Solo aceptar si suma correctamente
   // =====================================================
 
   var cantidadesValidas = [];
@@ -483,11 +509,10 @@ async function parseColectaPDF(pdfBuffer) {
       }
     }
 
-    // Estrategia 2: Filtrar cantidades sospechosas y buscar de nuevo
+    // Estrategia 2: Filtrar números sospechosos (como el total de productos) y buscar de nuevo
     if (cantidadesValidas.length === 0) {
-      // Filtrar números que probablemente no sean cantidades (ej: 33 aparece como total de productos)
       var cantidadesFiltradas = cantidades.filter(function(c) {
-        return c !== totalProductos; // Excluir el número de productos
+        return c !== totalProductos;
       });
 
       for (var start = 0; start <= cantidadesFiltradas.length - numCodigos; start++) {
@@ -503,7 +528,7 @@ async function parseColectaPDF(pdfBuffer) {
 
     // Estrategia 3: Backtracking para encontrar N números que sumen el total
     if (cantidadesValidas.length === 0 && cantidades.length >= numCodigos) {
-      console.log('Intentando backtracking...');
+      console.log('Intentando backtracking con ' + cantidades.length + ' cantidades...');
       var encontrada = buscarCombinacion(cantidades, numCodigos, totalUnidadesDeclaradas);
       if (encontrada) {
         cantidadesValidas = encontrada;
@@ -511,7 +536,7 @@ async function parseColectaPDF(pdfBuffer) {
       }
     }
 
-    // Estrategia 4: Si hay exactamente la cantidad correcta de números, usarlos
+    // Estrategia 4: Si hay exactamente la cantidad correcta de números, verificar suma
     if (cantidadesValidas.length === 0 && cantidades.length === numCodigos) {
       var suma = cantidades.reduce(function(a, b) { return a + b; }, 0);
       if (suma === totalUnidadesDeclaradas) {
@@ -521,17 +546,31 @@ async function parseColectaPDF(pdfBuffer) {
     }
   }
 
-  // Fallback: usar las primeras N cantidades
-  if (cantidadesValidas.length === 0 && cantidades.length >= numCodigos) {
-    cantidadesValidas = cantidades.slice(0, numCodigos);
-    console.log('⚠ Fallback: usando primeras ' + numCodigos + ' cantidades');
+  // =====================================================
+  // FALLAR SI NO SE PUDO HACER MATCH CORRECTO
+  // =====================================================
+
+  if (cantidadesValidas.length !== numCodigos) {
+    var sumaExtraida = cantidades.reduce(function(a, b) { return a + b; }, 0);
+    return {
+      items: {},
+      totalItems: 0,
+      totalUnits: 0,
+      envioId: envioId,
+      totalDeclarado: { productos: totalProductos, unidades: totalUnidadesDeclaradas },
+      validacion: {
+        ok: false,
+        error: 'No se pudo asociar las cantidades correctamente. Extraídas: ' + cantidades.length +
+               ' cantidades (suma=' + sumaExtraida + '), esperadas: ' + numCodigos +
+               ' productos con ' + totalUnidadesDeclaradas + ' unidades totales.'
+      }
+    };
   }
 
-  // Crear items asociando código con cantidad
+  // Crear items asociando código con cantidad (ya validado que son correctos)
   for (var i = 0; i < codigosOrdenados.length; i++) {
     var codigo = codigosOrdenados[i];
-    var cantidad = cantidadesValidas[i] || 1;
-    items[codigo] = { cantidad: cantidad, verificado: false };
+    items[codigo] = { cantidad: cantidadesValidas[i], verificado: false };
   }
 
   // Calcular total de unidades
@@ -540,22 +579,19 @@ async function parseColectaPDF(pdfBuffer) {
     totalUnits += items[k].cantidad;
   });
 
-  console.log('PDF parseado - Envío: ' + envioId + ', Productos: ' + Object.keys(items).length + ', Unidades: ' + totalUnits + ' (declaradas: ' + totalUnidadesDeclaradas + ')');
+  console.log('PDF parseado OK - Envío: ' + envioId + ', Productos: ' + Object.keys(items).length + ', Unidades: ' + totalUnits);
 
-  // Validación
-  var validacion = {
-    ok: true,
-    error: null
-  };
+  // Validación final (debería pasar siempre si llegamos acá)
+  var validacion = { ok: true, error: null };
 
   if (totalUnidadesDeclaradas > 0 && totalUnits !== totalUnidadesDeclaradas) {
     validacion.ok = false;
-    validacion.error = 'Las unidades extraídas (' + totalUnits + ') no coinciden con las declaradas en el PDF (' + totalUnidadesDeclaradas + ')';
+    validacion.error = 'Las unidades extraídas (' + totalUnits + ') no coinciden con las declaradas (' + totalUnidadesDeclaradas + ')';
   }
 
   if (totalProductos > 0 && Object.keys(items).length !== totalProductos) {
     validacion.ok = false;
-    validacion.error = 'Los productos extraídos (' + Object.keys(items).length + ') no coinciden con los declarados en el PDF (' + totalProductos + ')';
+    validacion.error = 'Los productos extraídos (' + Object.keys(items).length + ') no coinciden con los declarados (' + totalProductos + ')';
   }
 
   return {
