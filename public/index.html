@@ -1167,11 +1167,16 @@
         }, 1500);
       }
 
+      var webScannerBusy = false; // Prevenir escaneos mientras se procesa
+
       function verificarCodigoWeb(codigo) {
         if (!codigo || codigo.trim() === '') return;
+
+        // Limpiar input INMEDIATAMENTE para el próximo escaneo
+        codigoInput.value = '';
+
         if (!colectaActivaId) {
           showToast('Elegí una colecta', 'error');
-          codigoInput.value = '';
           codigoInput.focus();
           return;
         }
@@ -1182,10 +1187,13 @@
         if (codigo === lastVerifiedCode) {
           showToast('✓ CONFIRMADO', 'confirm', codigo);
           lastVerifiedCode = null; // Reset para próximo ciclo
-          codigoInput.value = '';
           codigoInput.focus();
           return;
         }
+
+        // Prevenir doble procesamiento
+        if (webScannerBusy) return;
+        webScannerBusy = true;
 
         // Verificar en la colecta
         fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
@@ -1230,7 +1238,7 @@
           showToast('ERROR', 'error', codigo);
         })
         .finally(function() {
-          codigoInput.value = '';
+          webScannerBusy = false;
           codigoInput.focus();
         });
       }
