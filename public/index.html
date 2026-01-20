@@ -238,11 +238,13 @@
     .colecta-modal-progress-fill { background: #22c55e; height: 100%; transition: width 0.3s; }
     .colecta-modal-progress-text { text-align: center; margin-top: 8px; font-size: 14px; font-weight: 600; color: #374151; }
     .colecta-modal-items { flex: 1; overflow-y: auto; padding: 8px; }
-    .colecta-modal-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+    .colecta-modal-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; gap: 8px; }
     .colecta-modal-item:last-child { border-bottom: none; }
     .colecta-modal-item.verificado { background: #f0fdf4; }
-    .colecta-modal-item-codigo { font-family: monospace; font-weight: 600; color: #111827; }
-    .colecta-modal-item-cant { background: #fef3c7; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+    .colecta-modal-item-info { flex: 1; min-width: 0; }
+    .colecta-modal-item-nombre { display: block; font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .colecta-modal-item-codigo { display: block; font-family: monospace; font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .colecta-modal-item-cant { background: #fef3c7; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
     .colecta-modal-item-status { font-size: 16px; }
 
     /* Sección Transferencia Stock - Solo Web */
@@ -1235,8 +1237,12 @@
             items.forEach(function(item) {
               var verificadoClass = item.verificado ? ' verificado' : '';
               var statusIcon = item.verificado ? '✅' : '⏳';
+              var nombreProducto = item.descripcion || item.sku || item.codigoML;
               itemsHtml += '<div class="colecta-modal-item' + verificadoClass + '">';
+              itemsHtml += '<div class="colecta-modal-item-info">';
+              itemsHtml += '<span class="colecta-modal-item-nombre">' + nombreProducto + '</span>';
               itemsHtml += '<span class="colecta-modal-item-codigo">' + item.codigoML + '</span>';
+              itemsHtml += '</div>';
               itemsHtml += '<span class="colecta-modal-item-cant">' + item.cantidad + ' uds</span>';
               itemsHtml += '<span class="colecta-modal-item-status">' + statusIcon + '</span>';
               itemsHtml += '</div>';

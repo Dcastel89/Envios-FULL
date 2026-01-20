@@ -1123,14 +1123,33 @@ app.get('/api/colecta/:id', function(req, res) {
 
   var stats = calcularEstadisticasColecta(colecta);
 
-  // Construir lista de items para el response
+  // Construir lista de items para el response (con info de producto)
   var itemsList = Object.keys(colecta.items).map(function(codigoML) {
     var item = colecta.items[codigoML];
+    var productoInfo = codigosCache[codigoML] || {};
+    var sku = productoInfo.sku || '';
+    var descripcion = '';
+
+    // Intentar obtener descripción normalizada del SKU
+    if (sku) {
+      var components = parseSKU(sku);
+      if (components.length > 0) {
+        descripcion = components.map(function(c) {
+          var desc = describeSKU(c.sku);
+          return c.quantity > 1 ? desc + ' (' + c.quantity + ')' : desc;
+        }).join(' + ');
+      }
+      if (!descripcion) descripcion = sku;
+    }
+
     return {
       codigoML: codigoML,
       cantidad: item.cantidad,
       verificado: item.verificado,
-      fechaVerificacion: item.fechaVerificacion || ''
+      fechaVerificacion: item.fechaVerificacion || '',
+      sku: sku,
+      producto: productoInfo.producto || '',
+      descripcion: descripcion
     };
   });
 
