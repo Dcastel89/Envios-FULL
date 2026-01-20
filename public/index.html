@@ -43,10 +43,13 @@
     .camera-btn { position: fixed; bottom: 0; left: 0; right: 0; padding: 18px; background: #059669; color: white; border: none; font-size: 18px; font-weight: 600; cursor: pointer; z-index: 90; }
 
     /* Camera container */
-    .camera-container { display: none; margin-top: 16px; position: relative; }
+    .camera-container { display: none; margin-top: 16px; position: relative; background: #000; border-radius: 12px; overflow: hidden; }
     .camera-container.active { display: block; }
-    #video { width: 100%; border-radius: 8px; }
-    .close-camera { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; }
+    #video { width: 100%; display: block; }
+    .close-camera { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; }
+    .camera-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; max-width: 280px; height: 80px; border: 3px solid rgba(255,255,255,0.8); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.3); pointer-events: none; }
+    .camera-guide::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: rgba(255,0,0,0.5); }
+    .camera-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; white-space: nowrap; }
 
     /* Status message */
     .status-message { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; display: none; }
@@ -94,6 +97,20 @@
     .vision-result.incorrect { background: #fee2e2; border-color: #ef4444; }
     .vision-result h4 { margin-bottom: 8px; }
     .vision-result p { font-size: 13px; margin: 4px 0; }
+
+    /* Vision camera modal */
+    .vision-camera-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; }
+    .vision-camera-modal.hidden { display: none; }
+    .vision-camera-header { padding: 16px; background: #1f2937; color: white; display: flex; justify-content: space-between; align-items: center; }
+    .vision-camera-header h3 { font-size: 16px; margin: 0; }
+    .vision-camera-close { background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0 8px; }
+    .vision-camera-body { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+    #visionVideo { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .vision-camera-footer { padding: 20px; background: #1f2937; display: flex; justify-content: center; gap: 16px; }
+    .vision-analyze-btn { background: #7c3aed; color: white; border: none; padding: 16px 48px; border-radius: 30px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+    .vision-analyze-btn:disabled { background: #6b7280; cursor: not-allowed; }
+    .vision-product-info { position: absolute; top: 16px; left: 16px; right: 16px; background: rgba(0,0,0,0.8); color: white; padding: 12px; border-radius: 8px; font-size: 14px; }
+    .vision-product-info strong { color: #a78bfa; }
 
     /* Complete banner */
     .complete-banner { display: none; position: fixed; bottom: 56px; left: 0; right: 0; background: #22c55e; color: white; padding: 20px; text-align: center; font-size: 18px; font-weight: 600; z-index: 100; }
@@ -577,6 +594,8 @@
       </div>
       <div class="camera-container" id="cameraContainer">
         <video id="video" playsinline></video>
+        <div class="camera-guide"></div>
+        <div class="camera-hint">Centra el codigo en el recuadro</div>
         <button type="button" class="close-camera" id="closeCamera">✕</button>
       </div>
     </div>
@@ -609,8 +628,27 @@
     .toggle-upload-btn.hidden { display: none; }
   </style>
 
-  <!-- Hidden file input for photo verification -->
-  <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+  <!-- Vision Camera Modal para verificación con IA -->
+  <div class="vision-camera-modal hidden" id="visionCameraModal">
+    <div class="vision-camera-header">
+      <h3>Verificar con IA</h3>
+      <button type="button" class="vision-camera-close" id="visionCameraClose">✕</button>
+    </div>
+    <div class="vision-camera-body">
+      <video id="visionVideo" playsinline autoplay></video>
+      <div class="vision-product-info" id="visionProductInfo">
+        <strong>Producto:</strong> <span id="visionProductName">-</span>
+      </div>
+    </div>
+    <div class="vision-camera-footer">
+      <button type="button" class="vision-analyze-btn" id="visionAnalyzeBtn">
+        <span>🔍</span> Analizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas oculto para captura -->
+  <canvas id="visionCanvas" style="display:none"></canvas>
 
   <!-- Modal de detalle de colecta -->
   <div class="colecta-modal hidden" id="colectaModal">
@@ -752,7 +790,16 @@
       var resetBtn = document.getElementById('resetBtn');
       var statsBadge = document.getElementById('statsBadge');
       var visionResult = document.getElementById('visionResult');
-      var photoInput = document.getElementById('photoInput');
+
+      // Vision camera elements
+      var visionCameraModal = document.getElementById('visionCameraModal');
+      var visionCameraClose = document.getElementById('visionCameraClose');
+      var visionVideo = document.getElementById('visionVideo');
+      var visionAnalyzeBtn = document.getElementById('visionAnalyzeBtn');
+      var visionProductInfo = document.getElementById('visionProductInfo');
+      var visionProductName = document.getElementById('visionProductName');
+      var visionCanvas = document.getElementById('visionCanvas');
+      var visionStream = null;
 
       // ============================================
       // MAIN TABS (solo web, no PWA)
@@ -1540,10 +1587,33 @@
         cameraBtn.textContent = 'Cerrar camara';
 
         if (!codeReader) {
-          codeReader = new ZXing.BrowserMultiFormatReader();
+          // Configuración mejorada para mejor lectura de códigos
+          var hints = new Map();
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+            ZXing.BarcodeFormat.QR_CODE,
+            ZXing.BarcodeFormat.CODE_128,
+            ZXing.BarcodeFormat.CODE_39,
+            ZXing.BarcodeFormat.EAN_13,
+            ZXing.BarcodeFormat.EAN_8,
+            ZXing.BarcodeFormat.UPC_A,
+            ZXing.BarcodeFormat.UPC_E,
+            ZXing.BarcodeFormat.DATA_MATRIX
+          ]);
+          codeReader = new ZXing.BrowserMultiFormatReader(hints);
         }
 
-        codeReader.decodeFromVideoDevice(null, video, function(result, err) {
+        // Usar cámara trasera con mayor resolución
+        var constraints = {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: 'continuous'
+          }
+        };
+
+        codeReader.decodeFromConstraints(constraints, video, function(result, err) {
           if (result) {
             var code = result.getText();
             if (navigator.vibrate) navigator.vibrate(100);
@@ -1567,50 +1637,91 @@
       }
 
       // ============================================
-      // VERIFICACIÓN CON FOTO (Claude Vision)
+      // VERIFICACIÓN CON CÁMARA (Claude Vision)
       // ============================================
       function iniciarVerificacionFoto(itemIndex) {
         photoItemIndex = itemIndex;
-        photoInput.click();
+        var item = currentItems[itemIndex];
+        visionProductName.textContent = item.description || item.sku || 'Producto';
+        abrirVisionCamera();
       }
 
-      photoInput.addEventListener('change', function(e) {
-        var file = e.target.files[0];
-        if (!file || photoItemIndex === null) return;
+      function abrirVisionCamera() {
+        visionCameraModal.classList.remove('hidden');
+        visionAnalyzeBtn.disabled = false;
+        visionAnalyzeBtn.innerHTML = '<span>🔍</span> Analizar';
 
-        var item = currentItems[photoItemIndex];
-        var reader = new FileReader();
-
-        reader.onload = function(event) {
-          var base64 = event.target.result;
-          showStatus('Analizando imagen con IA...', 'loading');
-
-          fetch('/api/vision/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              image: base64,
-              producto: {
-                sku: item.sku,
-                descripcion: item.description,
-                producto: currentCodigo ? currentCodigo.producto : ''
-              }
-            })
-          })
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            hideStatus();
-            mostrarResultadoVision(data, photoItemIndex);
-          })
-          .catch(function(err) {
-            showStatus('Error analizando imagen', 'error');
-          });
+        var constraints = {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
         };
 
-        reader.readAsDataURL(file);
-        e.target.value = '';
-      });
+        navigator.mediaDevices.getUserMedia(constraints)
+          .then(function(stream) {
+            visionStream = stream;
+            visionVideo.srcObject = stream;
+          })
+          .catch(function(err) {
+            console.error('Error accediendo a camara:', err);
+            cerrarVisionCamera();
+            showStatus('Error al acceder a la camara', 'error');
+          });
+      }
+
+      function cerrarVisionCamera() {
+        visionCameraModal.classList.add('hidden');
+        if (visionStream) {
+          visionStream.getTracks().forEach(function(track) { track.stop(); });
+          visionStream = null;
+        }
+        visionVideo.srcObject = null;
+        photoItemIndex = null;
+      }
+
+      visionCameraClose.onclick = cerrarVisionCamera;
+
+      visionAnalyzeBtn.onclick = function() {
+        if (photoItemIndex === null) return;
+        var item = currentItems[photoItemIndex];
+
+        // Capturar frame del video
+        visionCanvas.width = visionVideo.videoWidth;
+        visionCanvas.height = visionVideo.videoHeight;
+        var ctx = visionCanvas.getContext('2d');
+        ctx.drawImage(visionVideo, 0, 0);
+        var base64 = visionCanvas.toDataURL('image/jpeg', 0.9);
+
+        // Deshabilitar botón mientras analiza
+        visionAnalyzeBtn.disabled = true;
+        visionAnalyzeBtn.innerHTML = '<span>⏳</span> Analizando...';
+
+        fetch('/api/vision/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            image: base64,
+            producto: {
+              sku: item.sku,
+              descripcion: item.description,
+              producto: currentCodigo ? currentCodigo.producto : ''
+            }
+          })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          cerrarVisionCamera();
+          mostrarResultadoVision(data, photoItemIndex);
+        })
+        .catch(function(err) {
+          visionAnalyzeBtn.disabled = false;
+          visionAnalyzeBtn.innerHTML = '<span>🔍</span> Analizar';
+          showStatus('Error analizando imagen', 'error');
+        });
+      };
 
       function mostrarResultadoVision(data, itemIndex) {
         var isCorrect = data.correcto !== false;
