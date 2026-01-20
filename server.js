@@ -374,23 +374,27 @@ async function parseColectaPDF(pdfBuffer) {
   // ESTRATEGIA MEJORADA: Extraer cantidades del formato tabular
   // =====================================================
 
+  // Normalizar saltos de línea (Linux vs Windows)
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
   var lines = text.split('\n');
   var cantidades = [];
-  var cantidadesConPosicion = []; // Guardar posición para debug
 
+  // MÉTODO 1: Buscar números en líneas propias o con bullets
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].trim();
 
     // Ignorar líneas que son parte del encabezado de tabla
     if (line.includes('PRODUCTO') && line.includes('UNIDADES')) continue;
     if (line.includes('IDENTIFICACIÓN') || line.includes('INSTRUCCIONES')) continue;
+    // Ignorar la línea del header con totales
+    if (line.includes('Productos del envío') || line.includes('Total de unidades')) continue;
 
     // Buscar números solos de 1-3 dígitos en línea propia
     if (/^\d{1,3}$/.test(line)) {
       var num = parseInt(line, 10);
       if (num > 0 && num < 500) {
         cantidades.push(num);
-        cantidadesConPosicion.push({ num: num, line: i, context: 'solo' });
       }
     }
 
@@ -400,21 +404,59 @@ async function parseColectaPDF(pdfBuffer) {
       var numBullet = parseInt(matchBullet[1], 10);
       if (numBullet > 0 && numBullet < 500) {
         cantidades.push(numBullet);
-        cantidadesConPosicion.push({ num: numBullet, line: i, context: 'bullet' });
       }
     }
+  }
 
-    // Buscar patrón "obligatorio\nNUMERO" o "obligatorio NUMBER"
-    if (line === 'obligatorio' && i + 1 < lines.length) {
-      var nextLine = lines[i + 1].trim();
-      var matchNext = nextLine.match(/^(\d{1,3})(?:\s|$)/);
-      if (matchNext) {
-        var numObl = parseInt(matchNext[1], 10);
-        if (numObl > 0 && numObl < 500 && !cantidades.includes(numObl) || cantidades[cantidades.length - 1] !== numObl) {
-          // Solo agregar si no es duplicado del anterior
+  // MÉTODO 2: Si no encontramos suficientes, buscar patrón "obligatorio" seguido de número
+  if (cantidades.length < codigosOrdenados.length) {
+    console.log('Método 1 insuficiente (' + cantidades.length + '), probando método 2...');
+    cantidades = [];
+
+    // Buscar patrón: "obligatorio" seguido eventualmente por un número
+    var obligatorioRegex = /obligatorio\s*(\d{1,3})\b/gi;
+    var matchObl;
+    while ((matchObl = obligatorioRegex.exec(text)) !== null) {
+      var numObl = parseInt(matchObl[1], 10);
+      if (numObl > 0 && numObl < 500) {
+        cantidades.push(numObl);
+      }
+    }
+  }
+
+  // MÉTODO 3: Buscar patrón "Etiquetado obligatorio" + número en siguiente contexto
+  if (cantidades.length < codigosOrdenados.length) {
+    console.log('Método 2 insuficiente (' + cantidades.length + '), probando método 3...');
+    cantidades = [];
+
+    // Dividir por cada código ML y extraer el número que sigue
+    var secciones = text.split(/Código\s*ML:/i);
+    for (var s = 1; s < secciones.length; s++) {
+      var seccion = secciones[s];
+      // Buscar número después de "obligatorio" o "universal"
+      var matchSeccion = seccion.match(/(?:obligatorio|universal)\s*(\d{1,3})\b/i);
+      if (matchSeccion) {
+        var numSec = parseInt(matchSeccion[1], 10);
+        if (numSec > 0 && numSec < 500) {
+          cantidades.push(numSec);
+        }
+      } else {
+        // Fallback: buscar primer número aislado en la sección
+        var matchNum = seccion.match(/\b(\d{1,3})\b/);
+        if (matchNum) {
+          var numFallback = parseInt(matchNum[1], 10);
+          if (numFallback > 0 && numFallback < 500) {
+            cantidades.push(numFallback);
+          }
         }
       }
     }
+  }
+
+  console.log('Códigos ML encontrados: ' + codigosOrdenados.length);
+  console.log('Cantidades extraídas: ' + cantidades.length);
+  if (cantidades.length <= 60) {
+    console.log('Cantidades: ' + cantidades.join(', '));
   }
 
   console.log('Códigos ML encontrados: ' + codigosOrdenados.length);
