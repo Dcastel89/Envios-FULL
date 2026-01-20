@@ -1,4 +1,4 @@
-// Service Worker para Verificador FULL
+// Service Worker para Colectas FULL
 const CACHE_NAME = 'verificador-full-v2';
 
 // Archivos a cachear para offline
