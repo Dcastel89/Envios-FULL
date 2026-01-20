@@ -141,6 +141,15 @@
     .scanned-item-count.pending { color: #9ca3af; }
     .scanned-item-label { font-size: 10px; color: #6b7280; text-transform: uppercase; }
 
+    /* Toast para feedback rápido (web con lector) */
+    .scan-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: #22c55e; color: white; padding: 24px 48px; border-radius: 16px; font-size: 24px; font-weight: 700; text-align: center; z-index: 2000; opacity: 0; transition: all 0.2s ease; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .scan-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .scan-toast.error { background: #ef4444; }
+    .scan-toast.confirm { background: #3b82f6; }
+    .scan-toast.warning { background: #f59e0b; }
+    .scan-toast-code { font-size: 14px; font-weight: 400; margin-top: 8px; opacity: 0.9; font-family: monospace; }
+    .scan-toast-count { font-size: 16px; font-weight: 500; margin-top: 4px; }
+
     .hidden { display: none !important; }
 
     /* Login */
@@ -656,6 +665,13 @@
   <div class="complete-banner" id="completeBanner">✓ Verificacion completa</div>
   <button type="button" id="cameraBtn" class="camera-btn">Escanear codigo</button>
 
+  <!-- Toast para feedback rápido en web -->
+  <div class="scan-toast" id="scanToast">
+    <div id="scanToastMessage">Verificado</div>
+    <div class="scan-toast-code" id="scanToastCode"></div>
+    <div class="scan-toast-count" id="scanToastCount"></div>
+  </div>
+
   <style>
     .camera-btn.hidden { display: none; }
     .scan-section.hidden { display: none; }
@@ -842,6 +858,14 @@
       var scannedList = document.getElementById('scannedList');
       var scannedItems = {}; // { codigoML: { cantidad, cantidadVerificada, descripcion } }
 
+      // Toast elements (web con lector)
+      var scanToast = document.getElementById('scanToast');
+      var scanToastMessage = document.getElementById('scanToastMessage');
+      var scanToastCode = document.getElementById('scanToastCode');
+      var scanToastCount = document.getElementById('scanToastCount');
+      var lastVerifiedCode = null; // Para confirmación con segundo escaneo
+      var toastTimeout = null;
+
       // ============================================
       // MAIN TABS (solo web, no PWA)
       // ============================================
@@ -950,8 +974,15 @@
         // Mostrar/ocultar botón escanear y sección de búsqueda según pestaña
         var scanSection = document.querySelector('.scan-section');
         if (currentView === 'verificar' && activeMainSection === 'seguimiento') {
-          cameraBtn.classList.remove('hidden');
           scanSection.classList.remove('hidden');
+          // En web: ocultar cámara, solo usar lector físico
+          if (isPWA) {
+            cameraBtn.classList.remove('hidden');
+          } else {
+            cameraBtn.classList.add('hidden');
+            // Auto-foco en input para lector de código de barras
+            setTimeout(function() { codigoInput.focus(); }, 100);
+          }
         } else {
           cameraBtn.classList.add('hidden');
           scanSection.classList.add('hidden');
@@ -1118,6 +1149,90 @@
         scannedList.innerHTML = html;
         scannedBadge.textContent = completados + '/' + totalItems;
         scannedBadge.className = 'scanned-dropdown-badge' + (completados < totalItems ? ' pending' : '');
+      }
+
+      // ============================================
+      // TOAST Y FLUJO WEB (lector de código de barras)
+      // ============================================
+      function showToast(message, type, code, count) {
+        if (toastTimeout) clearTimeout(toastTimeout);
+
+        scanToastMessage.textContent = message;
+        scanToastCode.textContent = code || '';
+        scanToastCount.textContent = count || '';
+        scanToast.className = 'scan-toast show' + (type ? ' ' + type : '');
+
+        toastTimeout = setTimeout(function() {
+          scanToast.classList.remove('show');
+        }, 1500);
+      }
+
+      function verificarCodigoWeb(codigo) {
+        if (!codigo || codigo.trim() === '') return;
+        if (!colectaActivaId) {
+          showToast('Elegí una colecta', 'error');
+          codigoInput.value = '';
+          codigoInput.focus();
+          return;
+        }
+
+        codigo = codigo.trim().toUpperCase();
+
+        // Si es el mismo código que el anterior y ya está completo: confirmación
+        if (codigo === lastVerifiedCode) {
+          showToast('✓ CONFIRMADO', 'confirm', codigo);
+          lastVerifiedCode = null; // Reset para próximo ciclo
+          codigoInput.value = '';
+          codigoInput.focus();
+          return;
+        }
+
+        // Verificar en la colecta
+        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
+          method: 'POST',
+          credentials: 'include'
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            loadColectas();
+
+            var item = scannedItems[codigo];
+            var cantVerif = data.itemVerificado || (item ? item.cantidadVerificada + 1 : 1);
+            var cantTotal = data.itemCantidad || (item ? item.cantidad : 1);
+
+            // Actualizar scannedItems
+            if (item) {
+              item.cantidadVerificada = cantVerif;
+              actualizarListaEscaneados();
+            } else {
+              cargarItemsColectaActiva();
+            }
+
+            if (data.yaVerificado) {
+              // Ya estaba completo
+              showToast('YA COMPLETO', 'warning', codigo, cantVerif + '/' + cantTotal);
+              lastVerifiedCode = codigo; // Permitir confirmación
+            } else if (cantVerif >= cantTotal) {
+              // Acaba de completar el último item
+              showToast('✓ COMPLETO', '', codigo, cantVerif + '/' + cantTotal + ' items');
+              lastVerifiedCode = codigo; // Guardar para confirmación
+            } else {
+              // Item parcial (kit con varios items)
+              showToast('✓ ITEM ' + cantVerif, '', codigo, cantVerif + '/' + cantTotal);
+              lastVerifiedCode = null; // No permitir confirmación hasta completar
+            }
+          } else {
+            showToast('NO EN COLECTA', 'error', codigo);
+          }
+        })
+        .catch(function(err) {
+          showToast('ERROR', 'error', codigo);
+        })
+        .finally(function() {
+          codigoInput.value = '';
+          codigoInput.focus();
+        });
       }
 
       function renderListaColectas() {
@@ -1682,7 +1797,15 @@
       };
 
       codigoInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') searchCodigo(codigoInput.value);
+        if (e.key === 'Enter') {
+          // En web: verificación automática con lector
+          // En PWA: búsqueda normal para ver detalles
+          if (isPWA) {
+            searchCodigo(codigoInput.value);
+          } else {
+            verificarCodigoWeb(codigoInput.value);
+          }
+        }
       });
 
       resetBtn.onclick = function() {
