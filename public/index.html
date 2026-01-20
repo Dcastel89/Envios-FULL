@@ -892,11 +892,10 @@
         sectionSeguimiento.classList.add('active');
       }
 
-      // Ocultar pestaña Verificar en web (solo tiene sentido en la app)
+      // En web: mostrar pestaña Lista activa por defecto, pero mantener Verificar visible
       var tabVerificar = document.getElementById('tabVerificar');
       var tabLista = document.getElementById('tabLista');
       if (!isPWA && tabVerificar && tabLista) {
-        tabVerificar.style.display = 'none';
         // Poner Lista como activa por defecto en web
         tabVerificar.classList.remove('active');
         tabLista.classList.add('active');
