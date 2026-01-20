@@ -140,6 +140,9 @@
     .scanned-item-count.partial { color: #f59e0b; }
     .scanned-item-count.pending { color: #9ca3af; }
     .scanned-item-label { font-size: 10px; color: #6b7280; text-transform: uppercase; }
+    .scanned-item-delete { background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: 12px; }
+    .scanned-item-delete:hover { background: #b91c1c; }
+    .scanned-item-delete:disabled { background: #9ca3af; cursor: not-allowed; }
 
     /* Toast para feedback rápido (web con lector) */
     .scan-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: #22c55e; color: white; padding: 24px 48px; border-radius: 16px; font-size: 24px; font-weight: 700; text-align: center; z-index: 2000; opacity: 0; transition: all 0.2s ease; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
@@ -1262,6 +1265,7 @@
 
           var statusClass = esCompleto ? 'complete' : (esParcial ? 'partial' : 'pending');
           var statusText = esCompleto ? 'Completo' : (esParcial ? 'Parcial' : 'Pendiente');
+          var tieneVerificacion = item.cantidadVerificada > 0;
 
           html += '<div class="scanned-item">';
           html += '<div class="scanned-item-info">';
@@ -1272,6 +1276,9 @@
           html += '<div class="scanned-item-count ' + statusClass + '">' + item.cantidadVerificada + '/' + item.cantidad + '</div>';
           html += '<div class="scanned-item-label">' + statusText + '</div>';
           html += '</div>';
+          if (tieneVerificacion) {
+            html += '<button class="scanned-item-delete" onclick="borrarItemVerificacion(\'' + codigo + '\')">Borrar</button>';
+          }
           html += '</div>';
         });
 
@@ -1479,6 +1486,26 @@
         })
         .finally(function() {
           cerrarPanelVerificacion();
+        });
+      }
+
+      function borrarItemVerificacion(codigo) {
+        if (!codigo || !colectaActivaId) return;
+
+        fetch('/api/colecta/' + colectaActivaId + '/desverificar/' + encodeURIComponent(codigo), {
+          method: 'POST',
+          credentials: 'include'
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast('BORRADO', 'error', codigo);
+            loadColectas();
+            cargarItemsColectaActiva();
+          }
+        })
+        .catch(function(err) {
+          showToast('ERROR', 'error', 'No se pudo borrar');
         });
       }
 
