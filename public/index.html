@@ -162,6 +162,33 @@
     .web-scanner-status.ready { background: #166534; color: #86efac; }
     .web-scanner-status.no-colecta { background: #7f1d1d; color: #fca5a5; }
 
+    /* Panel de verificación de producto (web) */
+    .verify-panel { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0f172a; z-index: 2000; display: flex; flex-direction: column; }
+    .verify-panel.hidden { display: none; }
+    .verify-panel-header { background: #1e293b; padding: 20px 24px; border-bottom: 2px solid #334155; }
+    .verify-panel-code { font-family: monospace; font-size: 18px; color: #94a3b8; margin-bottom: 8px; }
+    .verify-panel-title { font-size: 32px; font-weight: 700; color: white; line-height: 1.2; }
+    .verify-panel-sku { font-size: 16px; color: #64748b; margin-top: 8px; font-family: monospace; }
+    .verify-panel-body { flex: 1; padding: 24px; overflow-y: auto; }
+    .verify-panel-instruction { text-align: center; color: #94a3b8; font-size: 18px; margin-bottom: 24px; padding: 16px; background: #1e293b; border-radius: 12px; }
+    .verify-panel-instruction strong { color: #fbbf24; }
+    .verify-panel-items { display: flex; flex-direction: column; gap: 16px; }
+    .verify-panel-item { background: #1e293b; border: 3px solid #334155; border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px; transition: all 0.3s; }
+    .verify-panel-item.confirmed { background: #14532d; border-color: #22c55e; }
+    .verify-panel-item.current { border-color: #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+    .verify-panel-item-check { width: 48px; height: 48px; border-radius: 50%; border: 3px solid #475569; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+    .verify-panel-item.confirmed .verify-panel-item-check { background: #22c55e; border-color: #22c55e; color: white; }
+    .verify-panel-item-info { flex: 1; }
+    .verify-panel-item-name { font-size: 24px; font-weight: 600; color: white; }
+    .verify-panel-item-detail { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+    .verify-panel-item-qty { font-size: 20px; font-weight: 700; color: #fbbf24; background: #1e293b; padding: 8px 16px; border-radius: 8px; }
+    .verify-panel-item.confirmed .verify-panel-item-qty { color: #86efac; }
+    .verify-panel-footer { background: #1e293b; padding: 20px 24px; border-top: 2px solid #334155; }
+    .verify-panel-progress { display: flex; align-items: center; gap: 16px; }
+    .verify-panel-progress-bar { flex: 1; height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
+    .verify-panel-progress-fill { height: 100%; background: #22c55e; transition: width 0.3s; }
+    .verify-panel-progress-text { font-size: 18px; font-weight: 600; color: white; min-width: 80px; text-align: right; }
+
     .hidden { display: none !important; }
 
     /* Login */
@@ -692,6 +719,30 @@
     <div class="scan-toast-count" id="scanToastCount"></div>
   </div>
 
+  <!-- Panel de verificación de producto (web) -->
+  <div class="verify-panel hidden" id="verifyPanel">
+    <div class="verify-panel-header">
+      <div class="verify-panel-code" id="verifyPanelCode">CODIGO</div>
+      <div class="verify-panel-title" id="verifyPanelTitle">Nombre del producto</div>
+      <div class="verify-panel-sku" id="verifyPanelSku">SKU</div>
+    </div>
+    <div class="verify-panel-body">
+      <div class="verify-panel-instruction">
+        <strong>Verificá que el producto coincida</strong><br>
+        Escaneá de nuevo para confirmar cada item
+      </div>
+      <div class="verify-panel-items" id="verifyPanelItems"></div>
+    </div>
+    <div class="verify-panel-footer">
+      <div class="verify-panel-progress">
+        <div class="verify-panel-progress-bar">
+          <div class="verify-panel-progress-fill" id="verifyPanelProgressFill" style="width: 0%"></div>
+        </div>
+        <div class="verify-panel-progress-text" id="verifyPanelProgressText">0/0</div>
+      </div>
+    </div>
+  </div>
+
   <style>
     .camera-btn.hidden { display: none; }
     .scan-section.hidden { display: none; }
@@ -890,6 +941,18 @@
       var webScannerSection = document.getElementById('webScannerSection');
       var webScannerInput = document.getElementById('webScannerInput');
       var webScannerStatus = document.getElementById('webScannerStatus');
+
+      // Panel de verificación de producto (web)
+      var verifyPanel = document.getElementById('verifyPanel');
+      var verifyPanelCode = document.getElementById('verifyPanelCode');
+      var verifyPanelTitle = document.getElementById('verifyPanelTitle');
+      var verifyPanelSku = document.getElementById('verifyPanelSku');
+      var verifyPanelItems = document.getElementById('verifyPanelItems');
+      var verifyPanelProgressFill = document.getElementById('verifyPanelProgressFill');
+      var verifyPanelProgressText = document.getElementById('verifyPanelProgressText');
+      var currentVerifyCode = null; // Código actual en el panel
+      var currentVerifyItems = []; // Items del producto actual
+      var confirmedCount = 0; // Cantidad de items confirmados
 
       // ============================================
       // MAIN TABS (solo web, no PWA)
@@ -1244,64 +1307,131 @@
 
         codigo = codigo.trim().toUpperCase();
 
-        // Si es el mismo código que el anterior y ya está completo: confirmación
-        if (codigo === lastVerifiedCode) {
-          showToast('✓ CONFIRMADO', 'confirm', codigo);
-          lastVerifiedCode = null; // Reset para próximo ciclo
+        // Si hay panel abierto con el mismo código: confirmar siguiente item
+        if (currentVerifyCode === codigo) {
+          confirmarSiguienteItem();
           webScannerInput.focus();
           return;
+        }
+
+        // Si hay panel abierto con otro código: cerrarlo primero
+        if (currentVerifyCode && currentVerifyCode !== codigo) {
+          cerrarPanelVerificacion();
         }
 
         // Prevenir doble procesamiento
         if (webScannerBusy) return;
         webScannerBusy = true;
 
-        // Verificar en la colecta
-        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
+        // Buscar información del producto
+        fetch('/api/codigo/' + encodeURIComponent(codigo), { credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.error) {
+              showToast('NO ENCONTRADO', 'error', codigo);
+              return;
+            }
+            // Mostrar panel de verificación
+            mostrarPanelVerificacion(codigo, data);
+          })
+          .catch(function(err) {
+            showToast('ERROR', 'error', codigo);
+          })
+          .finally(function() {
+            webScannerBusy = false;
+            webScannerInput.focus();
+          });
+      }
+
+      function mostrarPanelVerificacion(codigo, data) {
+        currentVerifyCode = codigo;
+        currentVerifyItems = data.items || [];
+        confirmedCount = 0;
+
+        // Llenar header
+        verifyPanelCode.textContent = codigo;
+        verifyPanelTitle.textContent = data.producto || 'Producto';
+        verifyPanelSku.textContent = data.items && data.items[0] ? 'SKU: ' + data.items[0].sku : '';
+
+        // Generar items
+        var html = '';
+        currentVerifyItems.forEach(function(item, index) {
+          var isCurrent = index === 0;
+          html += '<div class="verify-panel-item' + (isCurrent ? ' current' : '') + '" data-index="' + index + '">';
+          html += '<div class="verify-panel-item-check"></div>';
+          html += '<div class="verify-panel-item-info">';
+          html += '<div class="verify-panel-item-name">' + (item.description || item.sku) + '</div>';
+          html += '<div class="verify-panel-item-detail">SKU: ' + item.sku + '</div>';
+          html += '</div>';
+          html += '<div class="verify-panel-item-qty">x' + item.quantity + '</div>';
+          html += '</div>';
+        });
+        verifyPanelItems.innerHTML = html;
+
+        // Actualizar progreso
+        actualizarProgresoPanel();
+
+        // Mostrar panel
+        verifyPanel.classList.remove('hidden');
+      }
+
+      function confirmarSiguienteItem() {
+        if (confirmedCount >= currentVerifyItems.length) {
+          // Ya todo confirmado, cerrar
+          cerrarPanelVerificacion();
+          return;
+        }
+
+        // Marcar item actual como confirmado
+        var items = verifyPanelItems.querySelectorAll('.verify-panel-item');
+        if (items[confirmedCount]) {
+          items[confirmedCount].classList.remove('current');
+          items[confirmedCount].classList.add('confirmed');
+          items[confirmedCount].querySelector('.verify-panel-item-check').textContent = '✓';
+        }
+
+        confirmedCount++;
+
+        // Verificar en el servidor
+        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(currentVerifyCode), {
           method: 'POST',
           credentials: 'include'
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data.success) {
-            loadColectas();
-
-            var item = scannedItems[codigo];
-            var cantVerif = data.itemVerificado || (item ? item.cantidadVerificada + 1 : 1);
-            var cantTotal = data.itemCantidad || (item ? item.cantidad : 1);
-
-            // Actualizar scannedItems
-            if (item) {
-              item.cantidadVerificada = cantVerif;
-              actualizarListaEscaneados();
-            } else {
-              cargarItemsColectaActiva();
-            }
-
-            if (data.yaVerificado) {
-              // Ya estaba completo
-              showToast('YA COMPLETO', 'warning', codigo, cantVerif + '/' + cantTotal);
-              lastVerifiedCode = codigo; // Permitir confirmación
-            } else if (cantVerif >= cantTotal) {
-              // Acaba de completar el último item
-              showToast('✓ COMPLETO', '', codigo, cantVerif + '/' + cantTotal + ' items');
-              lastVerifiedCode = codigo; // Guardar para confirmación
-            } else {
-              // Item parcial (kit con varios items)
-              showToast('✓ ITEM ' + cantVerif, '', codigo, cantVerif + '/' + cantTotal);
-              lastVerifiedCode = null; // No permitir confirmación hasta completar
-            }
-          } else {
-            showToast('NO EN COLECTA', 'error', codigo);
-          }
-        })
-        .catch(function(err) {
-          showToast('ERROR', 'error', codigo);
-        })
-        .finally(function() {
-          webScannerBusy = false;
-          webScannerInput.focus();
+        }).then(function() {
+          loadColectas();
+          cargarItemsColectaActiva();
         });
+
+        // Marcar siguiente como current
+        if (confirmedCount < currentVerifyItems.length) {
+          if (items[confirmedCount]) {
+            items[confirmedCount].classList.add('current');
+          }
+          actualizarProgresoPanel();
+          showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
+        } else {
+          // Completado!
+          actualizarProgresoPanel();
+          showToast('✓ COMPLETO', '', currentVerifyCode);
+          // Cerrar panel después de 1.5 segundos
+          setTimeout(function() {
+            cerrarPanelVerificacion();
+          }, 1500);
+        }
+      }
+
+      function actualizarProgresoPanel() {
+        var total = currentVerifyItems.length;
+        var porcentaje = total > 0 ? Math.round((confirmedCount / total) * 100) : 0;
+        verifyPanelProgressFill.style.width = porcentaje + '%';
+        verifyPanelProgressText.textContent = confirmedCount + '/' + total;
+      }
+
+      function cerrarPanelVerificacion() {
+        verifyPanel.classList.add('hidden');
+        currentVerifyCode = null;
+        currentVerifyItems = [];
+        confirmedCount = 0;
+        webScannerInput.focus();
       }
 
       function renderListaColectas() {
