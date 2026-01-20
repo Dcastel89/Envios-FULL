@@ -165,7 +165,10 @@
     /* Panel de verificación de producto (web) */
     .verify-panel { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0f172a; z-index: 2000; display: flex; flex-direction: column; }
     .verify-panel.hidden { display: none; }
-    .verify-panel-header { background: #1e293b; padding: 20px 24px; border-bottom: 2px solid #334155; }
+    .verify-panel-header { background: #1e293b; padding: 20px 24px; border-bottom: 2px solid #334155; position: relative; }
+    .verify-panel-delete { position: absolute; top: 20px; right: 24px; background: #dc2626; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .verify-panel-delete:hover { background: #b91c1c; }
+    .verify-panel-delete:active { background: #991b1b; }
     .verify-panel-code { font-family: monospace; font-size: 18px; color: #94a3b8; margin-bottom: 8px; }
     .verify-panel-title { font-size: 32px; font-weight: 700; color: white; line-height: 1.2; }
     .verify-panel-sku { font-size: 16px; color: #64748b; margin-top: 8px; font-family: monospace; }
@@ -725,6 +728,7 @@
       <div class="verify-panel-code" id="verifyPanelCode">CODIGO</div>
       <div class="verify-panel-title" id="verifyPanelTitle">Nombre del producto</div>
       <div class="verify-panel-sku" id="verifyPanelSku">SKU</div>
+      <button class="verify-panel-delete" id="verifyPanelDelete" onclick="borrarVerificacion()">BORRAR</button>
     </div>
     <div class="verify-panel-body">
       <div class="verify-panel-instruction">
@@ -1432,6 +1436,33 @@
         currentVerifyItems = [];
         confirmedCount = 0;
         webScannerInput.focus();
+      }
+
+      function borrarVerificacion() {
+        if (!currentVerifyCode || !colectaActivaId) {
+          cerrarPanelVerificacion();
+          return;
+        }
+
+        // Llamar al endpoint de desverificar
+        fetch('/api/colecta/' + colectaActivaId + '/desverificar/' + encodeURIComponent(currentVerifyCode), {
+          method: 'POST',
+          credentials: 'include'
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast('BORRADO', 'error', currentVerifyCode);
+            loadColectas();
+            cargarItemsColectaActiva();
+          }
+        })
+        .catch(function(err) {
+          showToast('ERROR', 'error', 'No se pudo borrar');
+        })
+        .finally(function() {
+          cerrarPanelVerificacion();
+        });
       }
 
       function renderListaColectas() {
