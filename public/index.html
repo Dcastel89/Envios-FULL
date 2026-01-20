@@ -511,9 +511,9 @@
       <div class="colectas-header">
         <h2>Colectas FULL <span class="colectas-count" id="colectasCount">0</span></h2>
         <div class="colectas-tabs">
-          <button type="button" class="colectas-tab" data-view="lista">Lista</button>
-          <button type="button" class="colectas-tab" data-view="calendario">Calendario</button>
-          <button type="button" class="colectas-tab active" data-view="verificar">Verificar</button>
+          <button type="button" class="colectas-tab" data-view="lista" id="tabLista">Lista</button>
+          <button type="button" class="colectas-tab" data-view="calendario" id="tabCalendario">Calendario</button>
+          <button type="button" class="colectas-tab active" data-view="verificar" id="tabVerificar">Verificar</button>
         </div>
       </div>
 
@@ -793,6 +793,16 @@
         sectionSeguimiento.classList.add('active');
       }
 
+      // Ocultar pestaña Verificar en web (solo tiene sentido en la app)
+      var tabVerificar = document.getElementById('tabVerificar');
+      var tabLista = document.getElementById('tabLista');
+      if (!isPWA && tabVerificar && tabLista) {
+        tabVerificar.style.display = 'none';
+        // Poner Lista como activa por defecto en web
+        tabVerificar.classList.remove('active');
+        tabLista.classList.add('active');
+      }
+
       // ============================================
       // COLECTAS (múltiples)
       // ============================================
@@ -808,7 +818,7 @@
       var toggleUploadBtn = document.getElementById('toggleUploadBtn');
 
       var colectasData = [];
-      var currentView = 'verificar';
+      var currentView = isPWA ? 'verificar' : 'lista';
 
       function loadColectas() {
         fetch('/api/colectas', { credentials: 'include' })
