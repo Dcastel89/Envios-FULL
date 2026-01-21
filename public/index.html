@@ -1567,15 +1567,6 @@
 
         confirmedCount++;
 
-        // Verificar en el servidor
-        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(currentVerifyCode), {
-          method: 'POST',
-          credentials: 'include'
-        }).then(function() {
-          loadColectas();
-          cargarItemsColectaActiva();
-        });
-
         // Marcar siguiente como current
         if (confirmedCount < currentVerifyItems.length) {
           if (items[confirmedCount]) {
@@ -1584,7 +1575,15 @@
           actualizarProgresoPanel();
           showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
         } else {
-          // Completado!
+          // Kit completo! Solo ahora verificamos en el servidor (1 vez por kit completo)
+          fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(currentVerifyCode), {
+            method: 'POST',
+            credentials: 'include'
+          }).then(function() {
+            loadColectas();
+            cargarItemsColectaActiva();
+          });
+
           actualizarProgresoPanel();
           showToast('✓ COMPLETO', '', currentVerifyCode);
           // Cerrar panel después de 1.5 segundos
