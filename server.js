@@ -1364,6 +1364,44 @@ app.post('/api/colecta/:id/decrementar/:codigoML', async function(req, res) {
   });
 });
 
+// Reiniciar una colecta completa (todas las unidades verificadas a 0)
+app.post('/api/colecta/:id/reset', async function(req, res) {
+  var colectaId = req.params.id;
+
+  var colecta = colectas[colectaId];
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  // Resetear todos los items a 0
+  var itemsReseteados = 0;
+  var unidadesReseteadas = 0;
+  for (var codigoML in colecta.items) {
+    var item = colecta.items[codigoML];
+    if (item.cantidadVerificada > 0) {
+      unidadesReseteadas += item.cantidadVerificada;
+      itemsReseteados++;
+      item.cantidadVerificada = 0;
+      item.fechaVerificacion = '';
+    }
+  }
+
+  await saveColectasToSheets();
+
+  var stats = calcularEstadisticasColecta(colecta);
+
+  res.json({
+    success: true,
+    verificados: stats.verificados,
+    unidadesVerificadas: stats.unidadesVerificadas,
+    pendientes: stats.pendientes,
+    progreso: stats.progreso,
+    itemsReseteados: itemsReseteados,
+    unidadesReseteadas: unidadesReseteadas,
+    mensaje: 'Colecta reiniciada: ' + unidadesReseteadas + ' unidades de ' + itemsReseteados + ' items volvieron a 0'
+  });
+});
+
 // Eliminar una colecta específica
 app.delete('/api/colecta/:id', async function(req, res) {
   var colectaId = req.params.id;
