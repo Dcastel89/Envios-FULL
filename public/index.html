@@ -1170,13 +1170,13 @@
       var confirmedCount = 0; // Cantidad de items confirmados
       var fastModeEnabled = false; // Modo rápido: marcar todo con un solo escaneo
 
-      function toggleFastMode() {
+      window.toggleFastMode = function() {
         fastModeEnabled = !fastModeEnabled;
         var toggle = document.getElementById('fastModeToggle');
         if (toggle) {
           toggle.classList.toggle('active', fastModeEnabled);
         }
-      }
+      };
 
       // ============================================
       // MAIN TABS (solo web, no PWA)
