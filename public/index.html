@@ -198,12 +198,12 @@
     .verify-panel-progress-bar { flex: 1; height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
     .verify-panel-progress-fill { height: 100%; background: #22c55e; transition: width 0.3s; }
     .verify-panel-progress-text { font-size: 18px; font-weight: 600; color: white; min-width: 80px; text-align: right; }
-    .verify-panel-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .verify-panel-fast-mode { display: flex; align-items: center; gap: 12px; }
-    .verify-panel-fast-mode-label { font-size: 14px; color: #94a3b8; white-space: nowrap; }
-    .verify-panel-fast-mode-toggle { position: relative; width: 52px; height: 28px; background: #475569; border-radius: 14px; cursor: pointer; transition: background 0.3s; }
-    .verify-panel-fast-mode-toggle.active { background: #f59e0b; }
-    .verify-panel-fast-mode-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.3s; }
+    .verify-panel-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .verify-panel-fast-mode { display: flex; align-items: center; gap: 12px; background: #334155; padding: 10px 16px; border-radius: 12px; border: 2px solid #475569; }
+    .verify-panel-fast-mode-label { font-size: 16px; color: #e2e8f0; white-space: nowrap; font-weight: 500; }
+    .verify-panel-fast-mode-toggle { position: relative; width: 56px; height: 32px; background: #64748b; border-radius: 16px; cursor: pointer; transition: background 0.3s; border: 2px solid #94a3b8; flex-shrink: 0; }
+    .verify-panel-fast-mode-toggle.active { background: #f59e0b; border-color: #fbbf24; }
+    .verify-panel-fast-mode-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     .verify-panel-fast-mode-toggle.active::after { transform: translateX(24px); }
 
     .hidden { display: none !important; }
