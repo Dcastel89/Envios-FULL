@@ -1575,7 +1575,7 @@
         }
 
         // Verificar si ya tiene todas las unidades escaneadas
-        if (itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
+        if (itemEnColecta.cantidad > 0 && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
           showAllScannedAlert(codigo, itemEnColecta.cantidad);
           webScannerInput.focus();
           return;
@@ -2283,7 +2283,7 @@
 
         // Verificar si ya tiene todas las unidades escaneadas
         var itemEnColecta = scannedItems[codigo];
-        if (itemEnColecta && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
+        if (itemEnColecta && itemEnColecta.cantidad > 0 && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
           showAllScannedAlert(codigo, itemEnColecta.cantidad);
           stopCamera();
           return;
