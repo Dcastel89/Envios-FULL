@@ -498,6 +498,57 @@
         transform: translateY(100vh) rotate(720deg);
       }
     }
+
+    /* Alerta de todas las unidades escaneadas */
+    .all-scanned-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(220, 38, 38, 0.95);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .all-scanned-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .all-scanned-text {
+      font-size: 42px;
+      font-weight: 900;
+      color: white;
+      text-align: center;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: allScannedPulse 0.4s ease-in-out infinite alternate;
+      padding: 30px;
+      line-height: 1.3;
+    }
+    .all-scanned-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: allScannedBounce 0.5s ease-in-out infinite alternate;
+    }
+    .all-scanned-subtext {
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 20px;
+      text-align: center;
+    }
+    @keyframes allScannedPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+    @keyframes allScannedBounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
   </style>
 </head>
 <body>
@@ -523,6 +574,13 @@
     <div class="celebration-subtext" id="celebrationSubtext"></div>
   </div>
   <div class="confetti-container" id="confettiContainer"></div>
+
+  <!-- All Scanned Alert Overlay -->
+  <div class="all-scanned-overlay" id="allScannedOverlay">
+    <div class="all-scanned-icon">⚠️</div>
+    <div class="all-scanned-text" id="allScannedText">TODAS LAS UNIDADES<br>YA ESTAN ESCANEADAS</div>
+    <div class="all-scanned-subtext" id="allScannedSubtext"></div>
+  </div>
 
   <!-- Logout Button -->
   <button type="button" class="logout-btn hidden" id="logoutBtn">Salir</button>
@@ -1061,6 +1119,36 @@
       var confettiContainer = document.getElementById('confettiContainer');
       var celebratedColectas = {}; // Registro de colectas ya celebradas (solo una vez por colecta)
 
+      // ============================================
+      // ALERTA DE TODAS LAS UNIDADES ESCANEADAS
+      // ============================================
+      var allScannedOverlay = document.getElementById('allScannedOverlay');
+      var allScannedSubtext = document.getElementById('allScannedSubtext');
+
+      function showAllScannedAlert(codigo, cantidad) {
+        allScannedSubtext.textContent = codigo + ' (' + cantidad + '/' + cantidad + ' unidades)';
+        allScannedOverlay.classList.add('show');
+
+        // Vibración de alerta
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 100, 300]);
+        }
+
+        // Cerrar automáticamente después de 2.5 segundos
+        setTimeout(function() {
+          hideAllScannedAlert();
+        }, 2500);
+      }
+
+      function hideAllScannedAlert() {
+        allScannedOverlay.classList.remove('show');
+      }
+
+      // Cerrar alerta al hacer click
+      allScannedOverlay.onclick = function() {
+        hideAllScannedAlert();
+      };
+
       function createConfetti() {
         var colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
         var confettiCount = 150;
@@ -1482,6 +1570,13 @@
         var itemEnColecta = scannedItems[codigo];
         if (!itemEnColecta) {
           showToast('NO EN COLECTA', 'error', codigo);
+          webScannerInput.focus();
+          return;
+        }
+
+        // Verificar si ya tiene todas las unidades escaneadas
+        if (itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
+          showAllScannedAlert(codigo, itemEnColecta.cantidad);
           webScannerInput.focus();
           return;
         }
@@ -2185,6 +2280,15 @@
           return;
         }
         codigo = codigo.trim().toUpperCase();
+
+        // Verificar si ya tiene todas las unidades escaneadas
+        var itemEnColecta = scannedItems[codigo];
+        if (itemEnColecta && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
+          showAllScannedAlert(codigo, itemEnColecta.cantidad);
+          stopCamera();
+          return;
+        }
+
         showStatus('Buscando...', 'loading');
         searchBtn.disabled = true;
 
