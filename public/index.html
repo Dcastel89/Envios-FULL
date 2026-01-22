@@ -1695,6 +1695,29 @@
           return;
         }
 
+        // MODO RÁPIDO: verificar directamente sin abrir panel
+        if (fastModeEnabled) {
+          fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
+            method: 'POST',
+            credentials: 'include'
+          }).then(function() {
+            loadColectas();
+            cargarItemsColectaActiva();
+
+            // Verificar si el item ahora está completo
+            var cantidadTotal = itemEnColecta.cantidad;
+            var verificadasAntes = itemEnColecta.cantidadVerificada;
+            if (cantidadTotal > 0 && (verificadasAntes + 1) >= cantidadTotal) {
+              setTimeout(function() {
+                showItemCompleteAlert(codigo, cantidadTotal);
+              }, 300);
+            }
+          });
+          showToast('✓ OK', 'success', codigo, (itemEnColecta.cantidadVerificada + 1) + '/' + itemEnColecta.cantidad);
+          webScannerInput.focus();
+          return;
+        }
+
         // Prevenir doble procesamiento
         if (webScannerBusy) return;
         webScannerBusy = true;
@@ -1768,34 +1791,22 @@
 
         var items = verifyPanelItems.querySelectorAll('.verify-panel-item');
 
-        if (fastModeEnabled) {
-          // MODO RÁPIDO: Marcar TODOS los items del kit de una vez
-          for (var i = confirmedCount; i < items.length; i++) {
-            if (items[i]) {
-              items[i].classList.remove('current');
-              items[i].classList.add('confirmed');
-              items[i].querySelector('.verify-panel-item-check').textContent = '✓';
-            }
-          }
-          confirmedCount = currentVerifyItems.length;
-        } else {
-          // MODO NORMAL: Marcar solo el item actual
-          if (items[confirmedCount]) {
-            items[confirmedCount].classList.remove('current');
-            items[confirmedCount].classList.add('confirmed');
-            items[confirmedCount].querySelector('.verify-panel-item-check').textContent = '✓';
-          }
-          confirmedCount++;
+        // Marcar item actual como confirmado
+        if (items[confirmedCount]) {
+          items[confirmedCount].classList.remove('current');
+          items[confirmedCount].classList.add('confirmed');
+          items[confirmedCount].querySelector('.verify-panel-item-check').textContent = '✓';
+        }
+        confirmedCount++;
 
-          // Marcar siguiente como current
-          if (confirmedCount < currentVerifyItems.length) {
-            if (items[confirmedCount]) {
-              items[confirmedCount].classList.add('current');
-            }
-            actualizarProgresoPanel();
-            showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
-            return; // No completar aún, esperar siguiente escaneo
+        // Marcar siguiente como current si hay más
+        if (confirmedCount < currentVerifyItems.length) {
+          if (items[confirmedCount]) {
+            items[confirmedCount].classList.add('current');
           }
+          actualizarProgresoPanel();
+          showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
+          return; // No completar aún, esperar siguiente escaneo
         }
 
         // Kit completo! Verificar en el servidor
