@@ -320,6 +320,8 @@
     .verificar-progress-fill { background: linear-gradient(90deg, #4f46e5, #22c55e); height: 100%; transition: width 0.3s; }
     .verificar-progress-text { text-align: center; margin-top: 8px; font-size: 18px; font-weight: 700; color: #111827; }
     .verificar-mensaje { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+    .reset-colecta-btn { display: block; margin: 12px auto 0; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .reset-colecta-btn:hover { background: #fde68a; border-color: #f59e0b; }
 
     /* Modal de detalle de colecta */
     .colecta-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -1499,6 +1501,11 @@
           html += '<div class="verificar-mensaje" style="color:#16a34a">¡Colecta completada!</div>';
         }
 
+        // Botón de reinicio (solo si hay algo verificado)
+        if (col.unidadesVerificadas > 0) {
+          html += '<button type="button" class="reset-colecta-btn" onclick="resetearColecta(\'' + col.id + '\')">🔄 Reiniciar colecta</button>';
+        }
+
         verificarColectaInfo.innerHTML = html;
         verificarColectaInfo.classList.remove('hidden');
       }
@@ -2116,6 +2123,23 @@
             }
           })
           .catch(function(err) { showStatus('Error eliminando', 'error'); });
+      };
+
+      // Reiniciar colecta (global function)
+      window.resetearColecta = function(colectaId) {
+        if (!confirm('¿Reiniciar esta colecta? Se volverán a 0 todas las unidades verificadas.')) return;
+        fetch('/api/colecta/' + colectaId + '/reset', { method: 'POST', credentials: 'include' })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.success) {
+              showStatus(data.mensaje, 'success');
+              loadColectas();
+              cargarItemsColectaActiva();
+            } else {
+              showStatus(data.error || 'Error al reiniciar', 'error');
+            }
+          })
+          .catch(function(err) { showStatus('Error de conexión', 'error'); });
       };
 
       // Modal de detalle de colecta
