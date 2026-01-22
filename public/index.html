@@ -198,6 +198,13 @@
     .verify-panel-progress-bar { flex: 1; height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
     .verify-panel-progress-fill { height: 100%; background: #22c55e; transition: width 0.3s; }
     .verify-panel-progress-text { font-size: 18px; font-weight: 600; color: white; min-width: 80px; text-align: right; }
+    .verify-panel-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .verify-panel-fast-mode { display: flex; align-items: center; gap: 12px; }
+    .verify-panel-fast-mode-label { font-size: 14px; color: #94a3b8; white-space: nowrap; }
+    .verify-panel-fast-mode-toggle { position: relative; width: 52px; height: 28px; background: #475569; border-radius: 14px; cursor: pointer; transition: background 0.3s; }
+    .verify-panel-fast-mode-toggle.active { background: #f59e0b; }
+    .verify-panel-fast-mode-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.3s; }
+    .verify-panel-fast-mode-toggle.active::after { transform: translateX(24px); }
 
     .hidden { display: none !important; }
 
@@ -938,11 +945,17 @@
       <div class="verify-panel-items" id="verifyPanelItems"></div>
     </div>
     <div class="verify-panel-footer">
-      <div class="verify-panel-progress">
-        <div class="verify-panel-progress-bar">
-          <div class="verify-panel-progress-fill" id="verifyPanelProgressFill" style="width: 0%"></div>
+      <div class="verify-panel-footer-row">
+        <div class="verify-panel-fast-mode">
+          <span class="verify-panel-fast-mode-label">Modo rápido</span>
+          <div class="verify-panel-fast-mode-toggle" id="fastModeToggle" onclick="toggleFastMode()"></div>
         </div>
-        <div class="verify-panel-progress-text" id="verifyPanelProgressText">0/0</div>
+        <div class="verify-panel-progress">
+          <div class="verify-panel-progress-bar">
+            <div class="verify-panel-progress-fill" id="verifyPanelProgressFill" style="width: 0%"></div>
+          </div>
+          <div class="verify-panel-progress-text" id="verifyPanelProgressText">0/0</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1157,6 +1170,15 @@
       var currentVerifyCode = null; // Código actual en el panel
       var currentVerifyItems = []; // Items del producto actual
       var confirmedCount = 0; // Cantidad de items confirmados
+      var fastModeEnabled = false; // Modo rápido: marcar todo con un solo escaneo
+
+      function toggleFastMode() {
+        fastModeEnabled = !fastModeEnabled;
+        var toggle = document.getElementById('fastModeToggle');
+        if (toggle) {
+          toggle.classList.toggle('active', fastModeEnabled);
+        }
+      }
 
       // ============================================
       // MAIN TABS (solo web, no PWA)
@@ -1747,51 +1769,65 @@
           return;
         }
 
-        // Marcar TODOS los items del kit como confirmados de una vez
         var items = verifyPanelItems.querySelectorAll('.verify-panel-item');
 
-        // Marcar todos los items pendientes como confirmados
-        for (var i = confirmedCount; i < items.length; i++) {
-          if (items[i]) {
-            items[i].classList.remove('current');
-            items[i].classList.add('confirmed');
-            items[i].querySelector('.verify-panel-item-check').textContent = '✓';
+        if (fastModeEnabled) {
+          // MODO RÁPIDO: Marcar TODOS los items del kit de una vez
+          for (var i = confirmedCount; i < items.length; i++) {
+            if (items[i]) {
+              items[i].classList.remove('current');
+              items[i].classList.add('confirmed');
+              items[i].querySelector('.verify-panel-item-check').textContent = '✓';
+            }
+          }
+          confirmedCount = currentVerifyItems.length;
+        } else {
+          // MODO NORMAL: Marcar solo el item actual
+          if (items[confirmedCount]) {
+            items[confirmedCount].classList.remove('current');
+            items[confirmedCount].classList.add('confirmed');
+            items[confirmedCount].querySelector('.verify-panel-item-check').textContent = '✓';
+          }
+          confirmedCount++;
+
+          // Marcar siguiente como current
+          if (confirmedCount < currentVerifyItems.length) {
+            if (items[confirmedCount]) {
+              items[confirmedCount].classList.add('current');
+            }
+            actualizarProgresoPanel();
+            showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
+            return; // No completar aún, esperar siguiente escaneo
           }
         }
 
-        // Marcar todos como confirmados
-        confirmedCount = currentVerifyItems.length;
+        // Kit completo! Verificar en el servidor
+        var codigoVerificado = currentVerifyCode;
+        var itemAntes = scannedItems[codigoVerificado];
+        var cantidadTotal = itemAntes ? itemAntes.cantidad : 0;
+        var verificadasAntes = itemAntes ? itemAntes.cantidadVerificada : 0;
 
-        // Kit completo con un solo escaneo
-        {
-          // Kit completo! Solo ahora verificamos en el servidor (1 vez por kit completo)
-          var codigoVerificado = currentVerifyCode;
-          var itemAntes = scannedItems[codigoVerificado];
-          var cantidadTotal = itemAntes ? itemAntes.cantidad : 0;
-          var verificadasAntes = itemAntes ? itemAntes.cantidadVerificada : 0;
+        fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(currentVerifyCode), {
+          method: 'POST',
+          credentials: 'include'
+        }).then(function() {
+          loadColectas();
+          cargarItemsColectaActiva();
 
-          fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(currentVerifyCode), {
-            method: 'POST',
-            credentials: 'include'
-          }).then(function() {
-            loadColectas();
-            cargarItemsColectaActiva();
+          // Verificar si el item ahora está completo (era la última unidad)
+          if (cantidadTotal > 0 && (verificadasAntes + 1) >= cantidadTotal) {
+            setTimeout(function() {
+              showItemCompleteAlert(codigoVerificado, cantidadTotal);
+            }, 300);
+          }
+        });
 
-            // Verificar si el item ahora está completo (era la última unidad)
-            if (cantidadTotal > 0 && (verificadasAntes + 1) >= cantidadTotal) {
-              setTimeout(function() {
-                showItemCompleteAlert(codigoVerificado, cantidadTotal);
-              }, 300);
-            }
-          });
-
-          actualizarProgresoPanel();
-          showToast('✓ COMPLETO', '', currentVerifyCode);
-          // Cerrar panel después de 1.5 segundos
-          setTimeout(function() {
-            cerrarPanelVerificacion();
-          }, 1500);
-        }
+        actualizarProgresoPanel();
+        showToast('✓ COMPLETO', '', currentVerifyCode);
+        // Cerrar panel después de 1.5 segundos
+        setTimeout(function() {
+          cerrarPanelVerificacion();
+        }, 1500);
       }
 
       function actualizarProgresoPanel() {
