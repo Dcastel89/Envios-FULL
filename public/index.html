@@ -498,6 +498,108 @@
         transform: translateY(100vh) rotate(720deg);
       }
     }
+
+    /* Alerta de todas las unidades escaneadas */
+    .all-scanned-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(220, 38, 38, 0.95);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .all-scanned-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .all-scanned-text {
+      font-size: 42px;
+      font-weight: 900;
+      color: white;
+      text-align: center;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: allScannedPulse 0.4s ease-in-out infinite alternate;
+      padding: 30px;
+      line-height: 1.3;
+    }
+    .all-scanned-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      animation: allScannedBounce 0.5s ease-in-out infinite alternate;
+    }
+    .all-scanned-subtext {
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 20px;
+      text-align: center;
+    }
+    @keyframes allScannedPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+    @keyframes allScannedBounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+
+    /* Alerta de item completo (verde) */
+    .item-complete-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(22, 163, 74, 0.95);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .item-complete-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .item-complete-text {
+      font-size: 48px;
+      font-weight: 900;
+      color: white;
+      text-align: center;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      animation: itemCompletePulse 0.4s ease-in-out infinite alternate;
+      padding: 30px;
+      line-height: 1.3;
+    }
+    .item-complete-icon {
+      font-size: 100px;
+      margin-bottom: 20px;
+      animation: itemCompleteBounce 0.5s ease-in-out infinite alternate;
+    }
+    .item-complete-subtext {
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 20px;
+      text-align: center;
+    }
+    @keyframes itemCompletePulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+    @keyframes itemCompleteBounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-15px); }
+    }
   </style>
 </head>
 <body>
@@ -523,6 +625,20 @@
     <div class="celebration-subtext" id="celebrationSubtext"></div>
   </div>
   <div class="confetti-container" id="confettiContainer"></div>
+
+  <!-- All Scanned Alert Overlay -->
+  <div class="all-scanned-overlay" id="allScannedOverlay">
+    <div class="all-scanned-icon">⚠️</div>
+    <div class="all-scanned-text">TODAS LAS UNIDADES<br>YA ESTAN ESCANEADAS</div>
+    <div class="all-scanned-subtext" id="allScannedSubtext"></div>
+  </div>
+
+  <!-- Item Complete Alert Overlay -->
+  <div class="item-complete-overlay" id="itemCompleteOverlay">
+    <div class="item-complete-icon">✓</div>
+    <div class="item-complete-text">ITEM<br>COMPLETO</div>
+    <div class="item-complete-subtext" id="itemCompleteSubtext"></div>
+  </div>
 
   <!-- Logout Button -->
   <button type="button" class="logout-btn hidden" id="logoutBtn">Salir</button>
@@ -1061,6 +1177,66 @@
       var confettiContainer = document.getElementById('confettiContainer');
       var celebratedColectas = {}; // Registro de colectas ya celebradas (solo una vez por colecta)
 
+      // ============================================
+      // ALERTA DE TODAS LAS UNIDADES ESCANEADAS
+      // ============================================
+      var allScannedOverlay = document.getElementById('allScannedOverlay');
+      var allScannedSubtext = document.getElementById('allScannedSubtext');
+
+      function showAllScannedAlert(codigo, cantidad) {
+        allScannedSubtext.textContent = codigo + ' (' + cantidad + '/' + cantidad + ' unidades)';
+        allScannedOverlay.classList.add('show');
+
+        // Vibración de alerta
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 100, 300]);
+        }
+
+        // Cerrar automáticamente después de 2.5 segundos
+        setTimeout(function() {
+          hideAllScannedAlert();
+        }, 2500);
+      }
+
+      function hideAllScannedAlert() {
+        allScannedOverlay.classList.remove('show');
+      }
+
+      // Cerrar alerta al hacer click
+      allScannedOverlay.onclick = function() {
+        hideAllScannedAlert();
+      };
+
+      // ============================================
+      // ALERTA DE ITEM COMPLETO (VERDE)
+      // ============================================
+      var itemCompleteOverlay = document.getElementById('itemCompleteOverlay');
+      var itemCompleteSubtext = document.getElementById('itemCompleteSubtext');
+
+      function showItemCompleteAlert(codigo, cantidad) {
+        itemCompleteSubtext.textContent = codigo + ' (' + cantidad + '/' + cantidad + ' unidades)';
+        itemCompleteOverlay.classList.add('show');
+
+        // Vibración de éxito
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 100, 50, 200]);
+        }
+
+        // Cerrar automáticamente después de 2 segundos
+        setTimeout(function() {
+          hideItemCompleteAlert();
+        }, 2000);
+      }
+
+      function hideItemCompleteAlert() {
+        itemCompleteOverlay.classList.remove('show');
+      }
+
+      // Cerrar alerta al hacer click
+      itemCompleteOverlay.onclick = function() {
+        hideItemCompleteAlert();
+      };
+
       function createConfetti() {
         var colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
         var confettiCount = 150;
@@ -1486,6 +1662,13 @@
           return;
         }
 
+        // Verificar si ya tiene todas las unidades escaneadas
+        if (itemEnColecta.cantidad > 0 && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
+          showAllScannedAlert(codigo, itemEnColecta.cantidad);
+          webScannerInput.focus();
+          return;
+        }
+
         // Prevenir doble procesamiento
         if (webScannerBusy) return;
         webScannerBusy = true;
@@ -1576,12 +1759,24 @@
           showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
         } else {
           // Kit completo! Solo ahora verificamos en el servidor (1 vez por kit completo)
+          var codigoVerificado = currentVerifyCode;
+          var itemAntes = scannedItems[codigoVerificado];
+          var cantidadTotal = itemAntes ? itemAntes.cantidad : 0;
+          var verificadasAntes = itemAntes ? itemAntes.cantidadVerificada : 0;
+
           fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(currentVerifyCode), {
             method: 'POST',
             credentials: 'include'
           }).then(function() {
             loadColectas();
             cargarItemsColectaActiva();
+
+            // Verificar si el item ahora está completo (era la última unidad)
+            if (cantidadTotal > 0 && (verificadasAntes + 1) >= cantidadTotal) {
+              setTimeout(function() {
+                showItemCompleteAlert(codigoVerificado, cantidadTotal);
+              }, 300);
+            }
           });
 
           actualizarProgresoPanel();
@@ -1659,6 +1854,10 @@
       window.incrementarItem = function(codigo) {
         if (!codigo || !colectaActivaId) return;
 
+        var itemAntes = scannedItems[codigo];
+        var cantidadTotal = itemAntes ? itemAntes.cantidad : 0;
+        var verificadasAntes = itemAntes ? itemAntes.cantidadVerificada : 0;
+
         fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigo), {
           method: 'POST',
           credentials: 'include'
@@ -1669,6 +1868,13 @@
             showToast('+1', '', codigo);
             loadColectas();
             cargarItemsColectaActiva();
+
+            // Verificar si el item ahora está completo
+            if (cantidadTotal > 0 && (verificadasAntes + 1) >= cantidadTotal) {
+              setTimeout(function() {
+                showItemCompleteAlert(codigo, cantidadTotal);
+              }, 300);
+            }
           }
         })
         .catch(function(err) {
@@ -1994,6 +2200,10 @@
           return;
         }
 
+        var itemAntes = scannedItems[codigoML];
+        var cantidadTotal = itemAntes ? itemAntes.cantidad : 0;
+        var verificadasAntes = itemAntes ? itemAntes.cantidadVerificada : 0;
+
         fetch('/api/colecta/' + colectaActivaId + '/verificar/' + encodeURIComponent(codigoML), {
           method: 'POST',
           credentials: 'include'
@@ -2014,6 +2224,13 @@
               showStatus(data.mensaje || 'Este código ya estaba verificado', 'loading');
             } else {
               showStatus(data.mensaje || 'Verificado', 'success');
+
+              // Verificar si el item ahora está completo
+              if (cantidadTotal > 0 && (verificadasAntes + 1) >= cantidadTotal) {
+                setTimeout(function() {
+                  showItemCompleteAlert(codigoML, cantidadTotal);
+                }, 300);
+              }
             }
           }
         })
@@ -2185,6 +2402,15 @@
           return;
         }
         codigo = codigo.trim().toUpperCase();
+
+        // Verificar si ya tiene todas las unidades escaneadas
+        var itemEnColecta = scannedItems[codigo];
+        if (itemEnColecta && itemEnColecta.cantidad > 0 && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
+          showAllScannedAlert(codigo, itemEnColecta.cantidad);
+          stopCamera();
+          return;
+        }
+
         showStatus('Buscando...', 'loading');
         searchBtn.disabled = true;
 
