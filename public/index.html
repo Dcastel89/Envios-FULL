@@ -1574,13 +1574,6 @@
           return;
         }
 
-        // Verificar si ya tiene todas las unidades escaneadas
-        if (itemEnColecta.cantidad > 0 && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
-          showAllScannedAlert(codigo, itemEnColecta.cantidad);
-          webScannerInput.focus();
-          return;
-        }
-
         // Prevenir doble procesamiento
         if (webScannerBusy) return;
         webScannerBusy = true;
@@ -2280,15 +2273,6 @@
           return;
         }
         codigo = codigo.trim().toUpperCase();
-
-        // Verificar si ya tiene todas las unidades escaneadas
-        var itemEnColecta = scannedItems[codigo];
-        if (itemEnColecta && itemEnColecta.cantidad > 0 && itemEnColecta.cantidadVerificada >= itemEnColecta.cantidad) {
-          showAllScannedAlert(codigo, itemEnColecta.cantidad);
-          stopCamera();
-          return;
-        }
-
         showStatus('Buscando...', 'loading');
         searchBtn.disabled = true;
 
