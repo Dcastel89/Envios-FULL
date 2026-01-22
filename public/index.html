@@ -198,13 +198,12 @@
     .verify-panel-progress-bar { flex: 1; height: 12px; background: #334155; border-radius: 6px; overflow: hidden; }
     .verify-panel-progress-fill { height: 100%; background: #22c55e; transition: width 0.3s; }
     .verify-panel-progress-text { font-size: 18px; font-weight: 600; color: white; min-width: 80px; text-align: right; }
-    .verify-panel-footer-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .verify-panel-fast-mode { display: flex; align-items: center; gap: 12px; }
-    .verify-panel-fast-mode-label { font-size: 14px; color: #94a3b8; white-space: nowrap; }
-    .verify-panel-fast-mode-toggle { position: relative; width: 52px; height: 28px; background: #475569; border-radius: 14px; cursor: pointer; transition: background 0.3s; }
-    .verify-panel-fast-mode-toggle.active { background: #f59e0b; }
-    .verify-panel-fast-mode-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.3s; }
-    .verify-panel-fast-mode-toggle.active::after { transform: translateX(24px); }
+    .fast-mode-container { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding: 12px 20px; background: #334155; border-radius: 12px; border: 2px solid #475569; }
+    .fast-mode-label { font-size: 16px; color: #e2e8f0; font-weight: 600; }
+    .fast-mode-toggle { position: relative; width: 56px; height: 32px; background: #64748b; border-radius: 16px; cursor: pointer; transition: background 0.3s; border: 2px solid #94a3b8; flex-shrink: 0; }
+    .fast-mode-toggle.active { background: #f59e0b; border-color: #fbbf24; }
+    .fast-mode-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .fast-mode-toggle.active::after { transform: translateX(24px); }
 
     .hidden { display: none !important; }
 
@@ -888,6 +887,10 @@
       <input type="text" id="webScannerInput" class="web-scanner-input" placeholder="Esperando escaneo..." autocomplete="off">
       <div class="web-scanner-hint">El lector escribirá aquí automáticamente</div>
       <div class="web-scanner-status ready" id="webScannerStatus">✓ Listo para escanear</div>
+      <div class="fast-mode-container" id="fastModeContainer">
+        <span class="fast-mode-label">Modo rápido</span>
+        <div class="fast-mode-toggle" id="fastModeToggle" onclick="toggleFastMode()"></div>
+      </div>
     </div>
 
     <!-- Lista desplegable de items escaneados -->
@@ -945,17 +948,11 @@
       <div class="verify-panel-items" id="verifyPanelItems"></div>
     </div>
     <div class="verify-panel-footer">
-      <div class="verify-panel-footer-row">
-        <div class="verify-panel-fast-mode">
-          <span class="verify-panel-fast-mode-label">Modo rápido</span>
-          <div class="verify-panel-fast-mode-toggle" id="fastModeToggle" onclick="toggleFastMode()"></div>
+      <div class="verify-panel-progress">
+        <div class="verify-panel-progress-bar">
+          <div class="verify-panel-progress-fill" id="verifyPanelProgressFill" style="width: 0%"></div>
         </div>
-        <div class="verify-panel-progress">
-          <div class="verify-panel-progress-bar">
-            <div class="verify-panel-progress-fill" id="verifyPanelProgressFill" style="width: 0%"></div>
-          </div>
-          <div class="verify-panel-progress-text" id="verifyPanelProgressText">0/0</div>
-        </div>
+        <div class="verify-panel-progress-text" id="verifyPanelProgressText">0/0</div>
       </div>
     </div>
   </div>
@@ -1172,13 +1169,13 @@
       var confirmedCount = 0; // Cantidad de items confirmados
       var fastModeEnabled = false; // Modo rápido: marcar todo con un solo escaneo
 
-      function toggleFastMode() {
+      window.toggleFastMode = function() {
         fastModeEnabled = !fastModeEnabled;
         var toggle = document.getElementById('fastModeToggle');
         if (toggle) {
           toggle.classList.toggle('active', fastModeEnabled);
         }
-      }
+      };
 
       // ============================================
       // MAIN TABS (solo web, no PWA)
