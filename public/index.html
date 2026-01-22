@@ -1740,24 +1740,23 @@
           return;
         }
 
-        // Marcar item actual como confirmado
+        // Marcar TODOS los items del kit como confirmados de una vez
         var items = verifyPanelItems.querySelectorAll('.verify-panel-item');
-        if (items[confirmedCount]) {
-          items[confirmedCount].classList.remove('current');
-          items[confirmedCount].classList.add('confirmed');
-          items[confirmedCount].querySelector('.verify-panel-item-check').textContent = '✓';
+
+        // Marcar todos los items pendientes como confirmados
+        for (var i = confirmedCount; i < items.length; i++) {
+          if (items[i]) {
+            items[i].classList.remove('current');
+            items[i].classList.add('confirmed');
+            items[i].querySelector('.verify-panel-item-check').textContent = '✓';
+          }
         }
 
-        confirmedCount++;
+        // Marcar todos como confirmados
+        confirmedCount = currentVerifyItems.length;
 
-        // Marcar siguiente como current
-        if (confirmedCount < currentVerifyItems.length) {
-          if (items[confirmedCount]) {
-            items[confirmedCount].classList.add('current');
-          }
-          actualizarProgresoPanel();
-          showToast('✓ ITEM ' + confirmedCount, '', '', confirmedCount + '/' + currentVerifyItems.length);
-        } else {
+        // Kit completo con un solo escaneo
+        {
           // Kit completo! Solo ahora verificamos en el servidor (1 vez por kit completo)
           var codigoVerificado = currentVerifyCode;
           var itemAntes = scannedItems[codigoVerificado];
