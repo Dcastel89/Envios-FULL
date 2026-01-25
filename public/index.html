@@ -3379,14 +3379,20 @@
           var meliRow = file.data[i];
           var originalSku = (meliRow['SKU'] || '').toString().trim();
           var suggestedUnits = parseNumber(meliRow['Unidades sugeridas para enviar']);
+          var codigoUniversal = (meliRow['Código universal'] || '').toString().trim();
           var codigoML = (meliRow['Código ML'] || '').toString().trim();
+          var numeroProducto = (meliRow['Número de producto'] || '').toString().trim();
+          var publicacionesRaw = (meliRow['Publicaciones con este producto'] || '').toString().trim();
+          var numeroPublicacion = publicacionesRaw.split(',')[0].trim();
           var recommendation = (meliRow['Recomendación'] || '').toString().trim();
 
           if (!originalSku) {
             if (suggestedUnits > 0) {
               allPublicaciones.push({
-                originalSku: '(SIN SKU)', codigoML: codigoML, recommendation: recommendation,
-                suggestedUnits: suggestedUnits, skuComponents: [], cuenta: cuentaName, sinSku: true
+                originalSku: '(SIN SKU)', codigoUniversal: codigoUniversal, codigoML: codigoML,
+                numeroProducto: numeroProducto, numeroPublicacion: numeroPublicacion,
+                recommendation: recommendation, suggestedUnits: suggestedUnits,
+                skuComponents: [], cuenta: cuentaName, cuentaIndex: cuentaIndex, sinSku: true
               });
             }
             continue;
@@ -3399,8 +3405,10 @@
           }
 
           allPublicaciones.push({
-            originalSku: originalSku, codigoML: codigoML, recommendation: recommendation,
-            suggestedUnits: suggestedUnits, skuComponents: skuComponents, cuenta: cuentaName
+            originalSku: originalSku, codigoUniversal: codigoUniversal, codigoML: codigoML,
+            numeroProducto: numeroProducto, numeroPublicacion: numeroPublicacion,
+            recommendation: recommendation, suggestedUnits: suggestedUnits,
+            skuComponents: skuComponents, cuenta: cuentaName, cuentaIndex: cuentaIndex
           });
         }
       });
@@ -3413,9 +3421,12 @@
         var pub = allPublicaciones[i];
         if (pub.sinSku) {
           processed.push({
-            originalSku: pub.originalSku, codigoML: pub.codigoML, recommendation: pub.recommendation,
+            originalSku: pub.originalSku, codigoUniversal: pub.codigoUniversal, codigoML: pub.codigoML,
+            numeroProducto: pub.numeroProducto, numeroPublicacion: pub.numeroPublicacion,
+            isKit: false, components: [], recommendation: pub.recommendation,
             suggestedUnits: pub.suggestedUnits, availableStock: 0, unitsToSend: 0, stockAfterSend: 0,
-            cuenta: pub.cuenta, mayoristaReservado: 0, category: 'sinSku'
+            alerts: ['Sin SKU'], matchType: 'sin SKU',
+            cuenta: pub.cuenta, cuentaIndex: pub.cuentaIndex, mayoristaReservado: 0, category: 'sinSku'
           });
           continue;
         }
@@ -3450,9 +3461,14 @@
         if (!grupo.stockInfo || !grupo.stockInfo.found) {
           grupo.publicaciones.forEach(function(pub) {
             processed.push({
-              originalSku: pub.originalSku, codigoML: pub.codigoML, recommendation: pub.recommendation,
+              originalSku: pub.originalSku, codigoUniversal: pub.codigoUniversal, codigoML: pub.codigoML,
+              numeroProducto: pub.numeroProducto, numeroPublicacion: pub.numeroPublicacion,
+              isKit: pub.skuComponents.length > 1,
+              components: pub.skuComponents.map(function(c) { return { sku: c.sku, quantity: c.quantity, matchType: 'no encontrado' }; }),
+              recommendation: pub.recommendation,
               suggestedUnits: pub.suggestedUnits, availableStock: 0, unitsToSend: 0, stockAfterSend: 0,
-              cuenta: pub.cuenta, mayoristaReservado: 0, category: 'noEncontrado'
+              alerts: ['SKU ' + skuKey + ' no encontrado'], matchType: 'no encontrado',
+              cuenta: pub.cuenta, cuentaIndex: pub.cuentaIndex, mayoristaReservado: 0, category: 'noEncontrado'
             });
           });
           return;
@@ -3475,10 +3491,19 @@
           stockUsadoMeli += unitsToSend * multiplier;
 
           var item = {
-            originalSku: pub.originalSku, codigoML: pub.codigoML, recommendation: pub.recommendation,
+            originalSku: pub.originalSku, codigoUniversal: pub.codigoUniversal, codigoML: pub.codigoML,
+            numeroProducto: pub.numeroProducto, numeroPublicacion: pub.numeroPublicacion,
+            isKit: pub.skuComponents.length > 1,
+            components: pub.skuComponents.map(function(c) { return { sku: c.sku, quantity: c.quantity, matchType: grupo.stockInfo.matchType }; }),
+            recommendation: pub.recommendation,
             suggestedUnits: pub.suggestedUnits, availableStock: Math.floor(stockDisponible / multiplier),
-            unitsToSend: unitsToSend, stockAfterSend: 0, cuenta: pub.cuenta, mayoristaReservado: 0
+            unitsToSend: unitsToSend, stockAfterSend: 0, alerts: [],
+            matchType: grupo.stockInfo.matchType,
+            cuenta: pub.cuenta, cuentaIndex: pub.cuentaIndex, mayoristaReservado: 0
           };
+          if (unitsToSend < pub.suggestedUnits && unitsToSend > 0) {
+            item.alerts.push('Ratio: ' + (ratio * 100).toFixed(0) + '%');
+          }
           itemsDelGrupo.push(item);
           processed.push(item);
         });
@@ -3500,14 +3525,24 @@
         }
       });
 
-      // Ordenar
-      processed.sort(function(a, b) {
-        var order = { 'insuficiente': 1, 'ok': 2, 'noEncontrado': 3, 'sinRecomendacion': 4, 'sinSku': 5, 'excluir': 6 };
-        return (order[a.category] || 99) - (order[b.category] || 99);
-      });
+      // Clasificar y ordenar
+      var urgencyOrder = function(a, b) {
+        var getUrgency = function(rec) { var r = (rec || '').toLowerCase(); return r.includes('urgencia') ? 1 : r.includes('envi') ? 2 : 3; };
+        return getUrgency(a.recommendation) - getUrgency(b.recommendation);
+      };
+
+      var insuficiente = processed.filter(function(p) { return p.category === 'insuficiente'; }).sort(urgencyOrder);
+      var ok = processed.filter(function(p) { return p.category === 'ok'; }).sort(urgencyOrder);
+      var noEncontrado = processed.filter(function(p) { return p.category === 'noEncontrado'; });
+      var sinRecomendacion = processed.filter(function(p) { return p.category === 'sinRecomendacion'; });
+      var sinSku = processed.filter(function(p) { return p.category === 'sinSku'; });
+      var desvinculados = processed.filter(function(p) { return p.category === 'desvinculado'; });
+      var excluidos = processed.filter(function(p) { return p.category === 'excluir'; });
+
+      var finalResults = insuficiente.concat(ok, noEncontrado, sinRecomendacion, sinSku, excluidos);
 
       // Guardar resultados
-      plannerResultsData = { main: processed, validacion: validacionPorCuenta };
+      plannerResultsData = { main: finalResults, desvinculados: desvinculados, validacion: validacionPorCuenta };
       plannerErrors = notFound;
 
       // Mostrar resultados
@@ -3566,11 +3601,26 @@
       }).join('');
     }
 
+    // Función para nombres de hoja únicos
+    function getUniqueSheetName(wb, name) {
+      var n = (name || 'Hoja').substring(0, 31).replace(/[\\/*?:\[\]]/g, '');
+      if (!n) n = 'Hoja';
+      if (n.length > 31) n = n.substring(0, 31);
+      var f = n, c = 1;
+      while (wb.SheetNames.indexOf(f) !== -1) {
+        var suffix = ' (' + c++ + ')';
+        f = n.substring(0, 31 - suffix.length) + suffix;
+      }
+      return f;
+    }
+
     // Exportar
     exportBtn.addEventListener('click', function() {
       if (!plannerResultsData || typeof XLSX === 'undefined') return;
 
       var wb = XLSX.utils.book_new();
+      var omit = ['BLZT71495', 'CVKL95360', 'BJOJ43528', 'DOHU01052', 'JUSE20802', 'LKLY20388', 'TQSC20480', 'UTRJ19883', 'XALA20576'];
+
       var cuentas = [];
       plannerResultsData.main.forEach(function(r) {
         if (cuentas.indexOf(r.cuenta) === -1) cuentas.push(r.cuenta);
@@ -3581,7 +3631,11 @@
           return {
             'Estado': getCategoryLabel(r.category),
             'SKU': r.originalSku,
+            'Código universal': r.codigoUniversal,
             'Código ML': r.codigoML,
+            'Número de publicación': r.numeroPublicacion,
+            'Número de producto': r.numeroProducto,
+            'Componentes': r.components ? r.components.map(function(c) { return c.quantity > 1 ? c.sku + '(' + c.quantity + ')' : c.sku; }).join('/') : '',
             'Recomendación': r.recommendation,
             'Unidades Sugeridas': r.suggestedUnits,
             'Stock Disponible': r.availableStock,
@@ -3591,10 +3645,20 @@
           };
         });
         if (data.length) {
-          var sheetName = cuenta.substring(0, 31).replace(/[\\/*?:\[\]]/g, '');
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), sheetName);
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), getUniqueSheetName(wb, cuenta));
         }
       });
+
+      if (plannerResultsData.desvinculados && plannerResultsData.desvinculados.length > 0) {
+        var desvData = plannerResultsData.desvinculados.filter(function(r) {
+          return omit.indexOf(r.codigoML) === -1;
+        }).map(function(r) {
+          return { 'Cuenta': r.cuenta, 'SKU': r.originalSku, 'Código ML': r.codigoML };
+        });
+        if (desvData.length) {
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(desvData), 'Desvinculados');
+        }
+      }
 
       if (plannerErrors.length > 0) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(plannerErrors), 'No Encontrados');
