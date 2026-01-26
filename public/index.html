@@ -3202,8 +3202,8 @@
         var row = stockRows[i];
         var sku = (row.sku || '').toString().trim();
         var skuVariante = (row.sku_variante || '').toString().trim();
-        if (sku === skuToFind) return { found: true, stock: parseNumber(row.deposito_cantidad1), matchType: 'sku' };
-        if (skuVariante === skuToFind) return { found: true, stock: parseNumber(row.deposito_cantidad1), matchType: 'sku_variante' };
+        if (sku === skuToFind) return { found: true, stock: parseNumber(row.stock_disponible), matchType: 'sku' };
+        if (skuVariante === skuToFind) return { found: true, stock: parseNumber(row.stock_disponible), matchType: 'sku_variante' };
       }
       return { found: false, stock: 0, matchType: null };
     }
