@@ -821,6 +821,10 @@
                 <h4>⚠ SKUs no encontrados</h4>
                 <ul id="transferNotFoundList2"></ul>
               </div>
+              <div class="transfer-result-box hidden" id="transferValidation2">
+                <h4>Verificación de integridad</h4>
+                <div id="transferValidationContent2"></div>
+              </div>
               <button type="button" class="transfer-download-btn hidden" id="transferDownloadBtn2">
                 ⬇ Descargar Stock Actualizado (.xlsx)
               </button>
@@ -2789,6 +2793,8 @@
     var transferErrorsList = document.getElementById('transferErrorsList2');
     var transferNotFoundList = document.getElementById('transferNotFoundList2');
     var transferDownloadBtn = document.getElementById('transferDownloadBtn2');
+    var transferValidationDiv = document.getElementById('transferValidation2');
+    var transferValidationContent = document.getElementById('transferValidationContent2');
 
     if (!transferPdfInput) return;
 
@@ -2870,10 +2876,10 @@
         // Mostrar validación
         if (data.validacion.ok) {
           transferPdfValidation.className = 'transfer-validation ok';
-          transferPdfValidation.textContent = '✓ Validación OK - coincide con totales del PDF';
+          transferPdfValidation.textContent = '✓ Validación OK: ' + shipmentData.length + ' productos / ' + extractedUnits + ' unidades (coincide con PDF)';
         } else {
           transferPdfValidation.className = 'transfer-validation error';
-          transferPdfValidation.textContent = '✗ ' + data.validacion.error;
+          transferPdfValidation.textContent = '✗ PDF declara ' + pdfTotals.productos + ' productos y ' + pdfTotals.unidades + ' uds, se extrajeron ' + shipmentData.length + ' productos y ' + extractedUnits + ' uds';
         }
         transferPdfValidation.classList.remove('hidden');
 
@@ -3024,6 +3030,64 @@
       showResults();
     });
 
+    function validateTransfer(results) {
+      var checksOk = 0;
+      var checksFail = 0;
+      var errores = [];
+      var log = results.log;
+      var updatedStock = results.updatedStock;
+
+      for (var i = 0; i < log.length; i++) {
+        var entry = log[i];
+        var esperadoDep1 = entry.dep1Before - entry.qty;
+        var esperadoDep2 = entry.dep2Before + entry.qty;
+
+        // Check 1: la cuenta del log es correcta
+        if (entry.dep1After !== esperadoDep1 || entry.dep2After !== esperadoDep2) {
+          checksFail++;
+          errores.push(entry.sku + ': log incorrecto - esperado Dep1=' + esperadoDep1 + ' Dep2=' + esperadoDep2 + ', log tiene Dep1=' + entry.dep1After + ' Dep2=' + entry.dep2After);
+        } else {
+          checksOk++;
+        }
+
+        // Check 2: el updatedStock tiene los valores correctos
+        var rowIdx = findStockRow(entry.sku, updatedStock);
+        if (rowIdx === -1) {
+          checksFail++;
+          errores.push(entry.sku + ': no encontrado en stock actualizado');
+        } else {
+          var row = updatedStock[rowIdx];
+          var realDep1 = parseInt(row.deposito_cantidad1, 10) || 0;
+          var realDep2 = parseInt(row.deposito_cantidad2, 10) || 0;
+          if (realDep1 !== esperadoDep1 || realDep2 !== esperadoDep2) {
+            checksFail++;
+            errores.push(entry.sku + ': stock no coincide - esperado Dep1=' + esperadoDep1 + ' Dep2=' + esperadoDep2 + ', real Dep1=' + realDep1 + ' Dep2=' + realDep2);
+          } else {
+            checksOk++;
+          }
+        }
+      }
+
+      // Check 3: totales
+      var totalUnidadesMovidas = 0;
+      var totalDep1Reducido = 0;
+      var totalDep2Aumentado = 0;
+      for (var j = 0; j < log.length; j++) {
+        totalUnidadesMovidas += log[j].qty;
+        totalDep1Reducido += (log[j].dep1Before - log[j].dep1After);
+        totalDep2Aumentado += (log[j].dep2After - log[j].dep2Before);
+      }
+
+      if (totalUnidadesMovidas !== totalDep1Reducido || totalUnidadesMovidas !== totalDep2Aumentado) {
+        checksFail++;
+        errores.push('Totales inconsistentes: movidas=' + totalUnidadesMovidas + ', Dep1 reducido=' + totalDep1Reducido + ', Dep2 aumentado=' + totalDep2Aumentado);
+      } else {
+        checksOk++;
+      }
+
+      return { ok: checksFail === 0, checksOk: checksOk, checksFail: checksFail, errores: errores, totalUnidades: totalUnidadesMovidas, totalOperaciones: log.length };
+    }
+
     function showResults() {
       if (!transferResults) return;
 
@@ -3057,6 +3121,21 @@
         }).join('');
       } else {
         transferNotFound.classList.add('hidden');
+      }
+
+      // Verificación de integridad post-transferencia
+      if (transferResults.log.length > 0) {
+        var validation = validateTransfer(transferResults);
+        transferValidationDiv.classList.remove('hidden');
+        if (validation.ok) {
+          transferValidationDiv.className = 'transfer-result-box success';
+          transferValidationContent.innerHTML = '✓ Verificación OK: ' + validation.totalOperaciones + ' operaciones validadas (' + validation.checksOk + ' checks), ' + validation.totalUnidades + ' unidades transferidas correctamente';
+        } else {
+          transferValidationDiv.className = 'transfer-result-box error';
+          transferValidationContent.innerHTML = '✗ ' + validation.checksFail + ' errores encontrados (' + validation.checksOk + ' checks OK)<ul>' + validation.errores.map(function(e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+        }
+      } else {
+        transferValidationDiv.classList.add('hidden');
       }
 
       // Mostrar botón descarga si hay cambios
