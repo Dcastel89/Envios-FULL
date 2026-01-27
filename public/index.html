@@ -3649,9 +3649,9 @@
         }
       });
 
-      // Pestaña Colecta Reducida (todo dividido por 2)
+      // Pestaña Colecta Reducida: mitad de lo que ML sugiere
       var reducidaData = plannerResultsData.main.filter(function(r) {
-        return r.unitsToSend > 0;
+        return r.suggestedUnits > 0;
       }).map(function(r) {
         return {
           'Cuenta': r.cuenta,
@@ -3663,13 +3663,8 @@
           'Número de producto': r.numeroProducto,
           'Componentes': r.components ? r.components.map(function(c) { return c.quantity > 1 ? c.sku + '(' + c.quantity + ')' : c.sku; }).join('/') : '',
           'Recomendación': r.recommendation,
-          'Unidades Sugeridas (original)': r.suggestedUnits,
-          'Unidades Sugeridas (reducida)': Math.ceil(r.suggestedUnits / 2),
-          'Stock Disponible': r.availableStock,
-          'Unidades a Enviar (original)': r.unitsToSend,
-          'Unidades a Enviar (reducida)': Math.ceil(r.unitsToSend / 2),
-          'Reservado Mayorista': r.mayoristaReservado,
-          'Stock Restante': r.stockAfterSend
+          'Unidades Sugeridas ML': r.suggestedUnits,
+          'Unidades a Enviar': Math.ceil(r.suggestedUnits / 2)
         };
       });
       if (reducidaData.length) {
