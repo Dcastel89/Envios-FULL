@@ -3385,6 +3385,9 @@
           var publicacionesRaw = (meliRow['Publicaciones con este producto'] || '').toString().trim();
           var numeroPublicacion = publicacionesRaw.split(',')[0].trim();
           var recommendation = (meliRow['Recomendación'] || '').toString().trim();
+          var vendidas30d = parseNumber(meliRow['Unidades vendidas Últ. 30 días']);
+          var aptasParaVender = parseNumber(meliRow['Unidades aptas para vender']);
+          var enCamino = parseNumber(meliRow['Unidades en camino']);
 
           if (!originalSku) {
             if (suggestedUnits > 0) {
@@ -3392,6 +3395,7 @@
                 originalSku: '(SIN SKU)', codigoUniversal: codigoUniversal, codigoML: codigoML,
                 numeroProducto: numeroProducto, numeroPublicacion: numeroPublicacion,
                 recommendation: recommendation, suggestedUnits: suggestedUnits,
+                vendidas30d: vendidas30d, aptasParaVender: aptasParaVender, enCamino: enCamino,
                 skuComponents: [], cuenta: cuentaName, cuentaIndex: cuentaIndex, sinSku: true
               });
             }
@@ -3408,6 +3412,7 @@
             originalSku: originalSku, codigoUniversal: codigoUniversal, codigoML: codigoML,
             numeroProducto: numeroProducto, numeroPublicacion: numeroPublicacion,
             recommendation: recommendation, suggestedUnits: suggestedUnits,
+            vendidas30d: vendidas30d, aptasParaVender: aptasParaVender, enCamino: enCamino,
             skuComponents: skuComponents, cuenta: cuentaName, cuentaIndex: cuentaIndex
           });
         }
@@ -3425,6 +3430,7 @@
             numeroProducto: pub.numeroProducto, numeroPublicacion: pub.numeroPublicacion,
             isKit: false, components: [], recommendation: pub.recommendation,
             suggestedUnits: pub.suggestedUnits, availableStock: 0, unitsToSend: 0, stockAfterSend: 0,
+            vendidas30d: pub.vendidas30d, aptasParaVender: pub.aptasParaVender, enCamino: pub.enCamino,
             alerts: ['Sin SKU'], matchType: 'sin SKU',
             cuenta: pub.cuenta, cuentaIndex: pub.cuentaIndex, mayoristaReservado: 0, category: 'sinSku'
           });
@@ -3467,6 +3473,7 @@
               components: pub.skuComponents.map(function(c) { return { sku: c.sku, quantity: c.quantity, matchType: 'no encontrado' }; }),
               recommendation: pub.recommendation,
               suggestedUnits: pub.suggestedUnits, availableStock: 0, unitsToSend: 0, stockAfterSend: 0,
+              vendidas30d: pub.vendidas30d, aptasParaVender: pub.aptasParaVender, enCamino: pub.enCamino,
               alerts: ['SKU ' + skuKey + ' no encontrado'], matchType: 'no encontrado',
               cuenta: pub.cuenta, cuentaIndex: pub.cuentaIndex, mayoristaReservado: 0, category: 'noEncontrado'
             });
@@ -3498,6 +3505,7 @@
             recommendation: pub.recommendation,
             suggestedUnits: pub.suggestedUnits, availableStock: Math.floor(stockDisponible / multiplier),
             unitsToSend: unitsToSend, stockAfterSend: 0, alerts: [],
+            vendidas30d: pub.vendidas30d, aptasParaVender: pub.aptasParaVender, enCamino: pub.enCamino,
             matchType: grupo.stockInfo.matchType,
             cuenta: pub.cuenta, cuentaIndex: pub.cuentaIndex, mayoristaReservado: 0
           };
@@ -3649,10 +3657,17 @@
         }
       });
 
-      // Pestaña Colecta Reducida: mitad de lo que ML sugiere
+      // Pestaña Colecta Reducida: 20 días de cobertura basado en ventas reales
+      var DIAS_COBERTURA = 20;
       var reducidaData = plannerResultsData.main.filter(function(r) {
         return r.suggestedUnits > 0;
       }).map(function(r) {
+        var v30 = r.vendidas30d || 0;
+        var aptas = r.aptasParaVender || 0;
+        var camino = r.enCamino || 0;
+        var enviarReducida = Math.max(0, Math.ceil(v30 / 30 * DIAS_COBERTURA) - aptas - camino);
+        // Mínimo 1 si tiene ventas y no tiene stock
+        if (enviarReducida === 0 && v30 > 0 && aptas === 0 && camino === 0) enviarReducida = 1;
         return {
           'Cuenta': r.cuenta,
           'Estado': getCategoryLabel(r.category),
@@ -3663,10 +3678,13 @@
           'Número de producto': r.numeroProducto,
           'Componentes': r.components ? r.components.map(function(c) { return c.quantity > 1 ? c.sku + '(' + c.quantity + ')' : c.sku; }).join('/') : '',
           'Recomendación': r.recommendation,
-          'Unidades Sugeridas ML': r.suggestedUnits,
-          'Unidades a Enviar': Math.ceil(r.suggestedUnits / 2)
+          'Vendidas Últ. 30 días': v30,
+          'Aptas en Full': aptas,
+          'En Camino': camino,
+          'Sugeridas ML': r.suggestedUnits,
+          'Enviar (20 días)': enviarReducida
         };
-      });
+      }).filter(function(r) { return r['Enviar (20 días)'] > 0; });
       if (reducidaData.length) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reducidaData), 'Colecta Reducida');
       }
