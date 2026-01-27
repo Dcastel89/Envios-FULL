@@ -3037,31 +3037,41 @@
       var log = results.log;
       var updatedStock = results.updatedStock;
 
+      // Check 1: la aritmética de cada entrada del log es correcta
       for (var i = 0; i < log.length; i++) {
         var entry = log[i];
         var esperadoDep1 = entry.dep1Before - entry.qty;
         var esperadoDep2 = entry.dep2Before + entry.qty;
 
-        // Check 1: la cuenta del log es correcta
         if (entry.dep1After !== esperadoDep1 || entry.dep2After !== esperadoDep2) {
           checksFail++;
           errores.push(entry.sku + ': log incorrecto - esperado Dep1=' + esperadoDep1 + ' Dep2=' + esperadoDep2 + ', log tiene Dep1=' + entry.dep1After + ' Dep2=' + entry.dep2After);
         } else {
           checksOk++;
         }
+      }
 
-        // Check 2: el updatedStock tiene los valores correctos
-        var rowIdx = findStockRow(entry.sku, updatedStock);
+      // Check 2: el updatedStock tiene los valores finales correctos
+      // Un SKU puede aparecer varias veces en el log (múltiples líneas en el PDF),
+      // así que solo comparamos el estado final (última entrada de cada SKU)
+      var lastEntroBySku = {};
+      for (var k = 0; k < log.length; k++) {
+        lastEntroBySku[log[k].sku] = log[k];
+      }
+      var skus = Object.keys(lastEntroBySku);
+      for (var s = 0; s < skus.length; s++) {
+        var lastEntry = lastEntroBySku[skus[s]];
+        var rowIdx = findStockRow(lastEntry.sku, updatedStock);
         if (rowIdx === -1) {
           checksFail++;
-          errores.push(entry.sku + ': no encontrado en stock actualizado');
+          errores.push(lastEntry.sku + ': no encontrado en stock actualizado');
         } else {
           var row = updatedStock[rowIdx];
           var realDep1 = parseInt(row.deposito_cantidad1, 10) || 0;
           var realDep2 = parseInt(row.deposito_cantidad2, 10) || 0;
-          if (realDep1 !== esperadoDep1 || realDep2 !== esperadoDep2) {
+          if (realDep1 !== lastEntry.dep1After || realDep2 !== lastEntry.dep2After) {
             checksFail++;
-            errores.push(entry.sku + ': stock no coincide - esperado Dep1=' + esperadoDep1 + ' Dep2=' + esperadoDep2 + ', real Dep1=' + realDep1 + ' Dep2=' + realDep2);
+            errores.push(lastEntry.sku + ': stock no coincide - esperado Dep1=' + lastEntry.dep1After + ' Dep2=' + lastEntry.dep2After + ', real Dep1=' + realDep1 + ' Dep2=' + realDep2);
           } else {
             checksOk++;
           }
