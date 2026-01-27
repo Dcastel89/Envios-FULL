@@ -3649,6 +3649,33 @@
         }
       });
 
+      // Pestaña Colecta Reducida (todo dividido por 2)
+      var reducidaData = plannerResultsData.main.filter(function(r) {
+        return r.unitsToSend > 0;
+      }).map(function(r) {
+        return {
+          'Cuenta': r.cuenta,
+          'Estado': getCategoryLabel(r.category),
+          'SKU': r.originalSku,
+          'Código universal': r.codigoUniversal,
+          'Código ML': r.codigoML,
+          'Número de publicación': r.numeroPublicacion,
+          'Número de producto': r.numeroProducto,
+          'Componentes': r.components ? r.components.map(function(c) { return c.quantity > 1 ? c.sku + '(' + c.quantity + ')' : c.sku; }).join('/') : '',
+          'Recomendación': r.recommendation,
+          'Unidades Sugeridas (original)': r.suggestedUnits,
+          'Unidades Sugeridas (reducida)': Math.ceil(r.suggestedUnits / 2),
+          'Stock Disponible': r.availableStock,
+          'Unidades a Enviar (original)': r.unitsToSend,
+          'Unidades a Enviar (reducida)': Math.ceil(r.unitsToSend / 2),
+          'Reservado Mayorista': r.mayoristaReservado,
+          'Stock Restante': r.stockAfterSend
+        };
+      });
+      if (reducidaData.length) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reducidaData), 'Colecta Reducida');
+      }
+
       if (plannerResultsData.desvinculados && plannerResultsData.desvinculados.length > 0) {
         var desvData = plannerResultsData.desvinculados.filter(function(r) {
           return omit.indexOf(r.codigoML) === -1;
