@@ -2852,9 +2852,9 @@
           throw new Error(data.error || 'Error procesando PDF');
         }
 
-        // Convertir items a formato shipmentData
+        // Convertir items a formato shipmentData (usar SKU para match con stock)
         shipmentData = data.items.map(function(item) {
-          return { rawSku: item.codigo, qty: item.cantidad };
+          return { rawSku: item.sku || item.codigo, qty: item.cantidad };
         });
 
         pdfTotals = {

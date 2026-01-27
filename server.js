@@ -379,6 +379,16 @@ async function parseColectaPDF(pdfBuffer) {
   }
   console.log('Códigos ML encontrados:', codigosOrdenados.length);
 
+  // Extraer todos los SKUs en orden de aparición (para transferencia de stock)
+  var skuRegex = /SKU:\s*(\S+)/gi;
+  var matchSku;
+  var skusOrdenados = [];
+
+  while ((matchSku = skuRegex.exec(text)) !== null) {
+    skusOrdenados.push(matchSku[1].trim());
+  }
+  console.log('SKUs encontrados:', skusOrdenados.length);
+
   // =====================================================
   // ESTRATEGIA MEJORADA: Extraer cantidades del formato tabular
   // =====================================================
@@ -600,7 +610,7 @@ async function parseColectaPDF(pdfBuffer) {
   // Crear items asociando código con cantidad (ya validado que son correctos)
   for (var i = 0; i < codigosOrdenados.length; i++) {
     var codigo = codigosOrdenados[i];
-    items[codigo] = { cantidad: cantidadesValidas[i], cantidadVerificada: 0 };
+    items[codigo] = { cantidad: cantidadesValidas[i], cantidadVerificada: 0, sku: skusOrdenados[i] || '' };
   }
 
   // Calcular total de unidades
@@ -968,6 +978,7 @@ app.post('/api/colecta/debug-pdf', upload.single('pdf'), async function(req, res
     var itemsList = Object.keys(resultado.items).map(function(codigo) {
       return {
         codigo: codigo,
+        sku: resultado.items[codigo].sku || '',
         cantidad: resultado.items[codigo].cantidad
       };
     });
