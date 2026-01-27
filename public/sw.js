@@ -1,11 +1,16 @@
 // Service Worker para Colectas FULL
-const CACHE_NAME = 'verificador-full-v2';
+const CACHE_NAME = 'verificador-full-v3';
 
 // Archivos a cachear para offline
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/css/styles.css',
+  '/js/app.js',
+  '/js/transfer.js',
+  '/js/tabs.js',
+  '/js/planner.js'
 ];
 
 // Instalación
