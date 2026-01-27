@@ -3687,6 +3687,9 @@
         var enviarReducida = Math.max(0, Math.ceil(v30 / 30 * DIAS_COBERTURA) - aptas - camino);
         // Mínimo 1 si tiene ventas y no tiene stock
         if (enviarReducida === 0 && v30 > 0 && aptas === 0 && camino === 0) enviarReducida = 1;
+        // Piso: nunca menos del 30% de lo que ML sugiere
+        var pisoML = Math.ceil(r.suggestedUnits * 0.3);
+        if (enviarReducida < pisoML) enviarReducida = pisoML;
         // No enviar más de lo que el stock permite (mismas reglas que colecta normal)
         if (r.unitsToSend >= 0) enviarReducida = Math.min(enviarReducida, r.unitsToSend);
         return {
