@@ -41,6 +41,8 @@
       if (value === null || value === undefined || value === '' || value === '-') return 0;
       var str = value.toString().trim();
       if (str === '-' || str === '') return 0;
+      // Si empieza con negativo, devolver 0 (no hay stock)
+      if (str.charAt(0) === '-') return 0;
       var cleaned = str.replace(/[^\d]/g, '');
       var num = parseInt(cleaned);
       return isNaN(num) ? 0 : num;
