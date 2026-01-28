@@ -384,8 +384,13 @@ async function parseColectaPDF(pdfBuffer) {
   var matchSku;
   var skusOrdenados = [];
 
+  // Normalizar SKU: corregir doble "i" que aparece por bug en PDFs de MercadoLibre
+  function normalizeSku(sku) {
+    return sku.replace(/ii/g, 'i');
+  }
+
   while ((matchSku = skuRegex.exec(text)) !== null) {
-    skusOrdenados.push(matchSku[1].trim());
+    skusOrdenados.push(normalizeSku(matchSku[1].trim()));
   }
   console.log('SKUs encontrados:', skusOrdenados.length);
 
