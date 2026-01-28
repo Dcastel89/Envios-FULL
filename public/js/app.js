@@ -618,6 +618,7 @@
           html += '<button class="scanned-item-btn minus" onclick="window.decrementarItem(\'' + codigo + '\')"' + (!tieneVerificacion ? ' disabled' : '') + '>-</button>';
           html += '<span class="scanned-item-count ' + statusClass + '">' + item.cantidadVerificada + '/' + item.cantidad + '</span>';
           html += '<button class="scanned-item-btn plus" onclick="window.incrementarItem(\'' + codigo + '\')"' + (!puedeAgregar ? ' disabled' : '') + '>+</button>';
+          html += '<button class="scanned-item-btn delete" onclick="window.eliminarItemColecta(\'' + codigo + '\')" title="Eliminar ítem">🗑</button>';
           html += '</div>';
           html += '</div>';
         });
@@ -920,6 +921,30 @@
         })
         .catch(function(err) {
           showToast('ERROR', 'error', 'No se pudo incrementar');
+        });
+      };
+
+      window.eliminarItemColecta = function(codigo) {
+        if (!codigo || !colectaActivaId) return;
+
+        if (!confirm('¿Eliminar "' + codigo + '" de la colecta?')) return;
+
+        fetch('/api/colecta/' + colectaActivaId + '/item/' + encodeURIComponent(codigo), {
+          method: 'DELETE',
+          credentials: 'include'
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showToast('Eliminado', 'error', codigo);
+            loadColectas();
+            cargarItemsColectaActiva();
+          } else {
+            showToast('ERROR', 'error', data.error || 'No se pudo eliminar');
+          }
+        })
+        .catch(function(err) {
+          showToast('ERROR', 'error', 'No se pudo eliminar');
         });
       };
 

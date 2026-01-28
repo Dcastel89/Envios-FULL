@@ -135,6 +135,8 @@
     .scanned-item-btn.minus { background: #ef4444; color: white; }
     .scanned-item-btn.minus:hover { background: #dc2626; }
     .scanned-item-btn:disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; }
+    .scanned-item-btn.delete { background: transparent; font-size: 16px; opacity: 0.5; width: 24px; height: 24px; }
+    .scanned-item-btn.delete:hover { background: transparent; opacity: 1; }
 
     /* Toast para feedback rápido (web con lector) */
     .scan-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: #22c55e; color: white; padding: 24px 48px; border-radius: 16px; font-size: 24px; font-weight: 700; text-align: center; z-index: 2000; opacity: 0; transition: all 0.2s ease; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }

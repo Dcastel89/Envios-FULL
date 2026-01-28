@@ -1413,6 +1413,36 @@ app.post('/api/colecta/:id/reset', async function(req, res) {
   });
 });
 
+// Eliminar un ítem específico de una colecta
+app.delete('/api/colecta/:id/item/:codigoML', async function(req, res) {
+  var colectaId = req.params.id;
+  var codigoML = req.params.codigoML;
+
+  var colecta = colectas[colectaId];
+  if (!colecta) {
+    return res.status(404).json({ error: 'Colecta no encontrada' });
+  }
+
+  if (!colecta.items[codigoML]) {
+    return res.status(404).json({ error: 'Ítem no encontrado en la colecta' });
+  }
+
+  var itemEliminado = colecta.items[codigoML];
+  delete colecta.items[codigoML];
+  await saveColectasToSheets();
+
+  var stats = calcularEstadisticasColecta(colecta);
+
+  res.json({
+    success: true,
+    verificados: stats.verificados,
+    unidadesVerificadas: stats.unidadesVerificadas,
+    pendientes: stats.pendientes,
+    progreso: stats.progreso,
+    mensaje: 'Ítem "' + codigoML + '" eliminado de la colecta'
+  });
+});
+
 // Eliminar una colecta específica
 app.delete('/api/colecta/:id', async function(req, res) {
   var colectaId = req.params.id;
