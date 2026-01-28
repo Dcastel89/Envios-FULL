@@ -1240,11 +1240,13 @@
             }
 
             modalColectaNombre.textContent = data.nombre;
+            var colectaIdActual = colectaId;
 
             var infoHtml = '<p><strong>Cuenta:</strong> ' + (data.cuenta || 'Sin asignar') + '</p>';
-            infoHtml += '<p><strong>Fecha retiro:</strong> ' + data.fechaColecta + '</p>';
+            infoHtml += '<p><strong>Fecha colecta:</strong> <input type="date" id="modalFechaColecta" value="' + (data.fechaColecta || '') + '" style="padding:4px;border-radius:4px;border:1px solid #ccc;"></p>';
             infoHtml += '<p><strong>Productos:</strong> ' + data.totalCodigos + '</p>';
             infoHtml += '<p><strong>Unidades totales:</strong> ' + data.totalUnidades + '</p>';
+            infoHtml += '<button onclick="guardarFechaColecta(\'' + colectaIdActual + '\')" style="margin-top:8px;padding:6px 12px;background:#4f46e5;color:white;border:none;border-radius:4px;cursor:pointer;">Guardar fecha</button>';
             modalColectaInfo.innerHTML = infoHtml;
 
             // Usar datos del backend (ya calculados)
@@ -1274,6 +1276,34 @@
           .catch(function(err) {
             showStatus('Error cargando detalle', 'error');
           });
+      };
+
+      window.guardarFechaColecta = function(colectaId) {
+        var nuevaFecha = document.getElementById('modalFechaColecta').value;
+        if (!nuevaFecha) {
+          showStatus('Seleccioná una fecha', 'error');
+          return;
+        }
+
+        fetch('/api/colecta/' + colectaId, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ fechaColecta: nuevaFecha })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showStatus('Fecha actualizada', 'success');
+            loadColectas();
+            colectaModal.classList.add('hidden');
+          } else {
+            showStatus(data.error || 'Error al guardar', 'error');
+          }
+        })
+        .catch(function(err) {
+          showStatus('Error al guardar fecha', 'error');
+        });
       };
 
       // Marcar en la colecta activa seleccionada
