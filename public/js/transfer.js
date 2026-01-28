@@ -204,6 +204,8 @@
       if (idx === -1) {
         idx = data.findIndex(function(row) {
           var variante = row.sku_variante ? row.sku_variante.toString().trim().toLowerCase() : '';
+          // Solo hacer match si variante tiene contenido (evitar match con strings vacíos)
+          if (variante.length === 0) return false;
           return variante.includes(skuLower) || skuLower.includes(variante);
         });
       }
