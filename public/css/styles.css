@@ -258,9 +258,9 @@
     .calendar-cell:hover { background: #e5e7eb; }
     .calendar-cell.other-month { background: transparent; color: #d1d5db; min-height: 40px; }
     .calendar-cell.today { background: #dbeafe; font-weight: 700; }
-    .calendar-cell.has-colecta { background: #fff; border: 2px solid #e5e7eb; }
+    .calendar-cell.has-colecta { background: #fff; border: 2px solid #e5e7eb; min-height: 85px; }
     .calendar-cell-day { font-weight: 500; text-align: center; margin-bottom: 2px; }
-    .calendar-cell-colectas { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    .calendar-cell-colectas { display: flex; flex-direction: column; gap: 2px; flex: 1; }
     .calendar-cell-colecta { font-size: 9px; padding: 2px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .calendar-cell-colecta.pending { background: #fef3c7; color: #92400e; }
     .calendar-cell-colecta.complete { background: #dcfce7; color: #166534; }
