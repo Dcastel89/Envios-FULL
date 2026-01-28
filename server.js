@@ -1433,7 +1433,15 @@ app.delete('/api/colecta/:id/item/:codigoML', async function(req, res) {
   }
 
   var itemEliminado = colecta.items[codigoML];
+  var unidadesEliminadas = itemEliminado.cantidad || 0;
   delete colecta.items[codigoML];
+
+  // Actualizar totales de la colecta
+  colecta.totalItems = Object.keys(colecta.items).length;
+  colecta.totalUnits = Object.values(colecta.items).reduce(function(sum, item) {
+    return sum + (item.cantidad || 0);
+  }, 0);
+
   await saveColectasToSheets();
 
   var stats = calcularEstadisticasColecta(colecta);
