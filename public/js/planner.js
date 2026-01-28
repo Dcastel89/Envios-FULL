@@ -550,44 +550,45 @@
         }
       });
 
-      // Pestaña Colecta Reducida: 20 días de cobertura basado en ventas reales
+      // Pestaña Colecta Reducida por cada cuenta: 20 días de cobertura basado en ventas reales
       var DIAS_COBERTURA = 20;
-      var reducidaData = plannerResultsData.main.filter(function(r) {
-        return r.suggestedUnits > 0;
-      }).map(function(r) {
-        var v30 = r.vendidas30d || 0;
-        var aptas = r.aptasParaVender || 0;
-        var camino = r.enCamino || 0;
-        var enviarReducida = Math.max(0, Math.ceil(v30 / 30 * DIAS_COBERTURA) - aptas - camino);
-        // Mínimo 1 si tiene ventas y no tiene stock
-        if (enviarReducida === 0 && v30 > 0 && aptas === 0 && camino === 0) enviarReducida = 1;
-        // Piso: nunca menos del 30% de lo que ML sugiere
-        var pisoML = Math.ceil(r.suggestedUnits * 0.3);
-        if (enviarReducida < pisoML) enviarReducida = pisoML;
-        // No enviar más de lo que el stock permite (mismas reglas que colecta normal)
-        if (r.unitsToSend >= 0) enviarReducida = Math.min(enviarReducida, r.unitsToSend);
-        return {
-          'Cuenta': r.cuenta,
-          'Estado': getCategoryLabel(r.category),
-          'SKU': r.originalSku,
-          'Código universal': r.codigoUniversal,
-          'Código ML': r.codigoML,
-          'Número de publicación': r.numeroPublicacion,
-          'Número de producto': r.numeroProducto,
-          'Componentes': r.components ? r.components.map(function(c) { return c.quantity > 1 ? c.sku + '(' + c.quantity + ')' : c.sku; }).join('/') : '',
-          'Recomendación': r.recommendation,
-          'Vendidas Últ. 30 días': v30,
-          'Aptas en Full': aptas,
-          'En Camino': camino,
-          'Stock Disponible': r.availableStock,
-          'Sugeridas ML': r.suggestedUnits,
-          'Enviar Normal': r.unitsToSend,
-          'Enviar (20 días)': enviarReducida
-        };
-      }).filter(function(r) { return r['Enviar (20 días)'] > 0; });
-      if (reducidaData.length) {
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reducidaData), 'Colecta Reducida');
-      }
+      cuentas.forEach(function(cuenta) {
+        var reducidaData = plannerResultsData.main.filter(function(r) {
+          return r.cuenta === cuenta && r.suggestedUnits > 0;
+        }).map(function(r) {
+          var v30 = r.vendidas30d || 0;
+          var aptas = r.aptasParaVender || 0;
+          var camino = r.enCamino || 0;
+          var enviarReducida = Math.max(0, Math.ceil(v30 / 30 * DIAS_COBERTURA) - aptas - camino);
+          // Mínimo 1 si tiene ventas y no tiene stock
+          if (enviarReducida === 0 && v30 > 0 && aptas === 0 && camino === 0) enviarReducida = 1;
+          // Piso: nunca menos del 30% de lo que ML sugiere
+          var pisoML = Math.ceil(r.suggestedUnits * 0.3);
+          if (enviarReducida < pisoML) enviarReducida = pisoML;
+          // No enviar más de lo que el stock permite (mismas reglas que colecta normal)
+          if (r.unitsToSend >= 0) enviarReducida = Math.min(enviarReducida, r.unitsToSend);
+          return {
+            'Estado': getCategoryLabel(r.category),
+            'SKU': r.originalSku,
+            'Código universal': r.codigoUniversal,
+            'Código ML': r.codigoML,
+            'Número de publicación': r.numeroPublicacion,
+            'Número de producto': r.numeroProducto,
+            'Componentes': r.components ? r.components.map(function(c) { return c.quantity > 1 ? c.sku + '(' + c.quantity + ')' : c.sku; }).join('/') : '',
+            'Recomendación': r.recommendation,
+            'Vendidas Últ. 30 días': v30,
+            'Aptas en Full': aptas,
+            'En Camino': camino,
+            'Stock Disponible': r.availableStock,
+            'Sugeridas ML': r.suggestedUnits,
+            'Enviar Normal': r.unitsToSend,
+            'Enviar (20 días)': enviarReducida
+          };
+        }).filter(function(r) { return r['Enviar (20 días)'] > 0; });
+        if (reducidaData.length) {
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(reducidaData), getUniqueSheetName(wb, 'Reducida ' + cuenta));
+        }
+      });
 
       if (plannerResultsData.desvinculados && plannerResultsData.desvinculados.length > 0) {
         var desvData = plannerResultsData.desvinculados.filter(function(r) {
