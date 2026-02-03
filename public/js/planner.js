@@ -93,10 +93,11 @@
       if (!skuToFind || !stockRows) return { found: false, stock: 0, matchType: null };
       for (var i = 0; i < stockRows.length; i++) {
         var row = stockRows[i];
-        var sku = (row.sku || '').toString().trim();
-        var skuVariante = (row.sku_variante || '').toString().trim();
-        if (sku === skuToFind) return { found: true, stock: parseNumber(row.stock_disponible), matchType: 'sku' };
-        if (skuVariante === skuToFind) return { found: true, stock: parseNumber(row.stock_disponible), matchType: 'sku_variante' };
+        var sku = (row['SKU'] || '').toString().trim();
+        var skuVariante = (row['SKU Variante'] || '').toString().trim();
+        // Primero buscar por SKU Variante, si no hay valor entonces por SKU
+        if (skuVariante === skuToFind) return { found: true, stock: parseNumber(row['Stock Disponible']), matchType: 'sku_variante' };
+        if (sku === skuToFind) return { found: true, stock: parseNumber(row['Stock Disponible']), matchType: 'sku' };
       }
       return { found: false, stock: 0, matchType: null };
     }
@@ -223,7 +224,7 @@
             stockData = data;
           }
           updateProcessButton();
-        });
+        }, 3);
       });
     }
 
