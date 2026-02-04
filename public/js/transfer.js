@@ -32,6 +32,13 @@
 
     if (!transferPdfInput) return;
 
+    // Verificar si es ubicación de depósito (empieza con número)
+    function isUbicacion(str) {
+      if (!str) return false;
+      var firstChar = str.trim().charAt(0);
+      return firstChar >= '0' && firstChar <= '9';
+    }
+
     // Parsear SKU: manejar "/" separadores y (n) multiplicadores
     function parseSkuString(skuStr, baseQty) {
       if (!skuStr) return [];
@@ -40,7 +47,7 @@
 
       for (var i = 0; i < segments.length; i++) {
         var seg = segments[i];
-        if (seg.match(/^5A/i)) continue;
+        if (isUbicacion(seg)) continue;
 
         var cleanSeg = seg.replace(/\s+/g, '');
         var match = cleanSeg.match(/^(.+?)\((\d+)\)$/);
@@ -54,7 +61,7 @@
           multiplier = 1;
         }
 
-        if (sku.match(/^5A/i)) continue;
+        if (isUbicacion(sku)) continue;
 
         if (!skuMap[sku]) {
           skuMap[sku] = baseQty * multiplier;
@@ -266,7 +273,7 @@
       showResults();
     });
 
-    function validateTransfer(results) {
+    function validateTransfer(results, originalUnits) {
       var checksOk = 0;
       var checksFail = 0;
       var errores = [];
@@ -331,7 +338,7 @@
         checksOk++;
       }
 
-      return { ok: checksFail === 0, checksOk: checksOk, checksFail: checksFail, errores: errores, totalUnidades: totalUnidadesMovidas, totalOperaciones: log.length };
+      return { ok: checksFail === 0, checksOk: checksOk, checksFail: checksFail, errores: errores, itemsEnvio: originalUnits, stockMovido: totalUnidadesMovidas, totalOperaciones: log.length };
     }
 
     function showResults() {
@@ -371,11 +378,12 @@
 
       // Verificación de integridad post-transferencia
       if (transferResults.log.length > 0) {
-        var validation = validateTransfer(transferResults);
+        var originalUnits = pdfTotals ? pdfTotals.unidades : shipmentData.reduce(function(sum, item) { return sum + item.qty; }, 0);
+        var validation = validateTransfer(transferResults, originalUnits);
         transferValidationDiv.classList.remove('hidden');
         if (validation.ok) {
           transferValidationDiv.className = 'transfer-result-box success';
-          transferValidationContent.innerHTML = '✓ Verificación OK: ' + validation.totalOperaciones + ' operaciones validadas (' + validation.checksOk + ' checks), ' + validation.totalUnidades + ' unidades transferidas correctamente';
+          transferValidationContent.innerHTML = '✓ Verificación OK: ' + validation.totalOperaciones + ' SKUs procesados, ' + validation.stockMovido + ' unidades de stock transferidas (' + validation.itemsEnvio + ' items del envío)';
         } else {
           transferValidationDiv.className = 'transfer-result-box error';
           transferValidationContent.innerHTML = '✗ ' + validation.checksFail + ' errores encontrados (' + validation.checksOk + ' checks OK)<ul>' + validation.errores.map(function(e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
