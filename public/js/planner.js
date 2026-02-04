@@ -73,18 +73,26 @@
       return upper === 'ANILLO' || upper === 'ANILLO+V';
     }
 
+    function isUbicacionSegment(segment) {
+      if (!segment) return false;
+      // Ubicaciones empiezan con número, SKUs reales empiezan con letra
+      var firstChar = segment.trim().charAt(0);
+      return firstChar >= '0' && firstChar <= '9';
+    }
+
     function parseSku(sku) {
       if (!sku || typeof sku !== 'string') return [];
       var workingSku = sku.trim();
       if (!workingSku) return [];
       if (workingSku.startsWith('5') && workingSku.indexOf('/') !== -1) {
         var parts = workingSku.split('/');
-        return parts.slice(1).map(parseSkuComponent).filter(function(c) { return c.sku.length > 0 && !isAnilloSegment(c.sku); });
+        return parts.slice(1).map(parseSkuComponent).filter(function(c) { return c.sku.length > 0 && !isAnilloSegment(c.sku) && !isUbicacionSegment(c.sku); });
       }
       if (workingSku.indexOf('/') !== -1) {
-        return workingSku.split('/').map(parseSkuComponent).filter(function(c) { return c.sku.length > 0 && !isAnilloSegment(c.sku); });
+        return workingSku.split('/').map(parseSkuComponent).filter(function(c) { return c.sku.length > 0 && !isAnilloSegment(c.sku) && !isUbicacionSegment(c.sku); });
       }
       if (isAnilloSegment(workingSku)) return [];
+      if (isUbicacionSegment(workingSku)) return [];
       var parsed = parseSkuComponent(workingSku);
       return parsed.sku.length > 0 ? [parsed] : [];
     }
@@ -139,9 +147,9 @@
           var ws = wb.Sheets[wb.SheetNames[0]];
           var data;
           if (skipRows) {
-            data = XLSX.utils.sheet_to_json(ws, { range: skipRows });
+            data = XLSX.utils.sheet_to_json(ws, { range: skipRows, defval: '' });
           } else {
-            data = XLSX.utils.sheet_to_json(ws);
+            data = XLSX.utils.sheet_to_json(ws, { defval: '' });
           }
           callback(null, data);
         } catch (err) {
