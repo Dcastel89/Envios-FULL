@@ -253,10 +253,10 @@
             continue;
           }
 
-          var currentDep2 = parseInt(row.deposito_cantidad2, 10) || 0;
+          var currentDep2 = parseInt(row.deposito_cantidad3, 10) || 0;
 
           row.deposito_cantidad1 = currentStock - qty;
-          row.deposito_cantidad2 = currentDep2 + qty;
+          row.deposito_cantidad3 = currentDep2 + qty;
 
           log.push({
             sku: sku,
@@ -311,7 +311,7 @@
         } else {
           var row = updatedStock[rowIdx];
           var realDep1 = parseInt(row.deposito_cantidad1, 10) || 0;
-          var realDep2 = parseInt(row.deposito_cantidad2, 10) || 0;
+          var realDep2 = parseInt(row.deposito_cantidad3, 10) || 0;
           if (realDep1 !== lastEntry.dep1After || realDep2 !== lastEntry.dep2After) {
             checksFail++;
             errores.push(lastEntry.sku + ': stock no coincide - esperado Dep1=' + lastEntry.dep1After + ' Dep2=' + lastEntry.dep2After + ', real Dep1=' + realDep1 + ' Dep2=' + realDep2);
