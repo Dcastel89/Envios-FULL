@@ -264,7 +264,7 @@
             dep1Before: currentStock,
             dep1After: row.deposito_cantidad1,
             dep2Before: currentDep2,
-            dep2After: row.deposito_cantidad2
+            dep2After: row.deposito_cantidad3
           });
         }
       }
