@@ -170,11 +170,11 @@
             <div class="transfer-step">
               <div class="transfer-step-header">
                 <span class="transfer-step-num">1</span>
-                <span class="transfer-step-title">PDF del Envío FULL</span>
+                <span class="transfer-step-title">PDFs de Envíos FULL <small style="font-weight: normal; color: #6b7280;">(hasta 3)</small></span>
               </div>
-              <input type="file" id="transferPdfInput2" accept=".pdf">
-              <div class="transfer-step-status" id="transferPdfStatus2"></div>
-              <div class="transfer-validation hidden" id="transferPdfValidation2"></div>
+              <input type="file" id="transferPdfInput2" accept=".pdf" multiple>
+              <div id="transferPdfList2"></div>
+              <div class="transfer-validation hidden" id="transferPdfCombined2"></div>
             </div>
 
             <div class="transfer-step">
